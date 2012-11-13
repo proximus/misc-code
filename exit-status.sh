@@ -23,14 +23,19 @@ function run_cmd()
     # of commands that has been executed.
     commands+=("${1}")
 
+    # Get array length of return code status.
+    local rc_length=${#return_code[@]}
+    # Get array length of commands.
+    local commands_length=${#commands[@]}
+
     # If an argument -k is given to the command then the program should
     # continue to run, else the command is given without an argument and
     # should exit the program if the command fails.
     if [ $# -eq 1 ]; then
-        if [ ${return_code[-1]} -ne 0 ]; then
+        if [ ${return_code[${rc_length}-1]} -ne 0 ]; then
             print_summary
-            printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[-1]}"
-            exit "${return_code[-1]}";
+            printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[${commands_length}-1]}"
+            exit "${return_code[${rc_length}-1]}";
         fi
     fi
     if [ $# -ge 2 ]; then
