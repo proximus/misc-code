@@ -15,32 +15,32 @@
 #===============================================================================
 function run_cmd()
 {
-	# Execute the command and save the exit status.
-	eval ${1}
-	add_status
+    # Execute the command and save the exit status.
+    eval ${1}
+    add_status
 
-	# Append the command to list of commands. Basically just save a history
-	# of commands that has been executed.
-	commands+=("${1}")
+    # Append the command to list of commands. Basically just save a history
+    # of commands that has been executed.
+    commands+=("${1}")
 
-	# If an argument -k is given to the command then the program should
-        # continue to run, else the command is given without an argument and
-        # should exit the program if the command fails.
-	if [ $# -eq 1 ]; then
-		if [ ${return_code[-1]} -ne 0 ]; then
-			print_summary
-			printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[-1]}"
-			exit "${return_code[-1]}";
-		fi
-	fi
-	if [ $# -ge 2 ]; then
-		case "$2" in
-		-c)	echo "Will not exit program if command fails..."
-			;;
-		*)	echo "Invalid argument to command!"; exit 1
-			;;
-		esac
-	fi
+    # If an argument -k is given to the command then the program should
+    # continue to run, else the command is given without an argument and
+    # should exit the program if the command fails.
+    if [ $# -eq 1 ]; then
+        if [ ${return_code[-1]} -ne 0 ]; then
+            print_summary
+            printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[-1]}"
+            exit "${return_code[-1]}";
+        fi
+    fi
+    if [ $# -ge 2 ]; then
+        case "$2" in
+        -c) echo "Will not exit program if command fails..."
+            ;;
+        *)  echo "Invalid argument to command!"; exit 1
+            ;;
+        esac
+    fi
 }
 
 #===============================================================================
@@ -50,8 +50,8 @@ function run_cmd()
 #===============================================================================
 function add_status()
 {
-	local status=$(echo $?)
-	return_code+=($status)
+    local status=$(echo $?)
+    return_code+=($status)
 }
 
 #===============================================================================
@@ -59,12 +59,12 @@ function add_status()
 #===============================================================================
 function print_summary()
 {
-	echo "#==============================================================================="
-	echo "# SUMMARY:"
-	for index in ${!return_code[*]}; do
-		printf "#%4d: Exit status [%3d], Command = %s\n" $index ${return_code[$index]} "${commands[$index]}"
-	done
-	echo "#==============================================================================="
+    echo "#==============================================================================="
+    echo "# SUMMARY:"
+    for index in ${!return_code[*]}; do
+        printf "#%4d: Exit status [%3d], Command = %s\n" $index ${return_code[$index]} "${commands[$index]}"
+    done
+    echo "#==============================================================================="
 }
 
 #===============================================================================
@@ -73,13 +73,15 @@ function print_summary()
 #===============================================================================
 function handle_exit()
 {
-	print_summary
-	for index in ${!return_code[*]}; do
-		if [ ${return_code[$index]} -ne 0 ]; then
-			printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[$index]}"
-			exit "${return_code[$index]}";
-		fi
-	done
+    local return_status=0
+    print_summary
+    for index in ${!return_code[*]}; do
+        if [ ${return_code[$index]} -ne 0 ]; then
+            printf "ERROR: Failed to execute command #%d: %s\n" $index "${commands[$index]}"
+            return_status=1
+        fi
+    done
+    exit ${return_status}
 }
 
 # Initialize our global array of return status
