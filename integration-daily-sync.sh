@@ -23,57 +23,75 @@
 #===============================================================================
 # Function will print out help
 # usage: print_usage
+# TODO
 #===============================================================================
-usage="usage: $(basename "$0") [-b team-branch] [-h] -- Program to do daily integation and sync
+function print_usage()
+{
+    local prog_name=$(basename "$0")
+    echo "$prog_name is a program to do daily integation and sync from a git repository"
+    echo "Usage: $prog_name -b <teambranch> [-h]
 
-where:
-    -b  branch name (master-int-board, r48ya-int-board, master-int-tr, r48ya-int-tr)
-    -h  show this help text
+Options:
+    -b  team-branch argument can be one of master-int-board, r48ya-int-board, master-int-tr, r48ya-int-tr.
+    -h  show this help text.
 
 Report bugs to samuel.gabrielsson@gmail.com
-Integrator home page: <http://ki81fw4.rnd.ki.sw.ericsson.se/tiki/tiki-index.php?page=RA_Radio_Git_Integration>"
+Integrator home page: <http://ki81fw4.rnd.ki.sw.ericsson.se/tiki/tiki-index.php?page=RA_Radio_Git_Integration>" >&2
+}
 
+# TODO
+# Parse input arguments from console
 if [ "$#" -eq 0 ]; then
-    echo "Now in 0"
-    echo "$usage" >&2
+    print_usage
     exit 1
 fi
 
-# Parse arguments
 while getopts :b:h flag; do
   case $flag in
     b)
       echo "-b used: $OPTARG"
       team_branch=$OPTARG
-      team_branch_array=$(echo $OPTARG | tr "-" "\n")
       ;;
     h)
-      echo "$usage" >&2
+      print_usage
       exit
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
-      echo "$usage" >&2
+      print_usage
       exit 1
       ;;
     :)
       echo "Option -$OPTARG requires an argument." >&2
-      echo "$usage" >&2
+      print_usage
       exit 1
       ;;
   esac
 done
-
 shift $(( OPTIND - 1 ))
 
-# Split the team branch array into three variables:
-# Variable 1: branch
-# Variable 2: integration or development
-# Variable 3: team name
-for i in $team_branch_array
-do
-    echo "> [$i]"
-done
+#===============================================================================
+# Split the team branch array into three variables
+# usage: get_name
+# TODO
+#===============================================================================
+function get_name()
+{
+    local IFS=$'\n'
+    local arr
+    local line
+
+    for line in `echo $team_branch`; do
+        IFS='-'
+        arr=($line)
+        echo branch_name=${arr[0]}
+        echo branch_type=${arr[1]}
+        echo branch_team=${arr[2]}
+    done
+}
+
+get_name $team_branch
+
 exit 1
 # Set variables
 if [ "$branch" == "master" ]; then
@@ -85,4 +103,3 @@ if [ "$branch" == "master" ]; then
 else
     echo "hej"
 fi
-echo "Branch is: $branch"
