@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #===============================================================================
 #
-#          FILE:  integration-daily-sync.sh
+#          FILE:  git-daily-sync.sh
 #
 #         USAGE:  ---
 #
@@ -50,7 +50,7 @@ while getopts :b:h flag; do
   case $flag in
     b)
       echo "-b used: $OPTARG"
-      team_branch=$OPTARG
+      teambranch=$OPTARG
       ;;
     h)
       print_usage
@@ -81,7 +81,7 @@ function get_name()
     local arr
     local line
 
-    for line in `echo $team_branch`; do
+    for line in `echo $1`; do
         IFS='-'
         arr=($line)
         echo branch_name=${arr[0]}
@@ -90,7 +90,7 @@ function get_name()
     done
 }
 
-get_name $team_branch
+get_name $teambranch
 
 exit 1
 # Set variables
