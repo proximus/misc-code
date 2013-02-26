@@ -21,9 +21,8 @@
 #===============================================================================
 
 #===============================================================================
-# Function will print out help
-# usage: print_usage
-# TODO
+# Function will print out help and usage
+# Usage: print_usage
 #===============================================================================
 function print_usage()
 {
@@ -32,47 +31,53 @@ function print_usage()
     echo "Usage: $prog_name -b <teambranch> [-h]
 
 Options:
-    -b  team-branch argument can be one of master-int-board, r48ya-int-board, master-int-tr, r48ya-int-tr.
-    -h  show this help text.
+    -b <teambranch>     where <team-branch> is in the format <branch>-<type>-<team>. For example:
+                        master-int-board, r48ya-int-board, master-int-tr, r48ya-int-tr.
+    -h                  show this help text.
 
 Report bugs to samuel.gabrielsson@gmail.com
 Integrator home page: <http://ki81fw4.rnd.ki.sw.ericsson.se/tiki/tiki-index.php?page=RA_Radio_Git_Integration>" >&2
 }
 
-# TODO
-# Parse input arguments from console
-if [ "$#" -eq 0 ]; then
-    print_usage
-    exit 1
-fi
-
-while getopts :b:h flag; do
-  case $flag in
-    b)
-      echo "-b used: $OPTARG"
-      teambranch=$OPTARG
-      ;;
-    h)
-      print_usage
-      exit
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      print_usage
-      exit 1
-      ;;
-    :)
-      echo "Option -$OPTARG requires an argument." >&2
-      print_usage
-      exit 1
-      ;;
-  esac
-done
-shift $(( OPTIND - 1 ))
+#===============================================================================
+# Function uses getopts to parse the command line options
+# Usage: parse_opts <options>
+# Return: <args>
+#===============================================================================
+function parse_opts()
+{
+    while getopts :b:dh arg; do
+        case $arg in
+        b)
+            # Return value for function
+            echo $OPTARG
+            ;;
+        d)
+            # Turn on debug mode
+            set -x
+            ;;
+        h)
+            print_usage
+            exit
+            ;;
+        \?)
+            echo "Error: Invalid option: -$OPTARG" >&2
+            print_usage
+            exit 1
+            ;;
+        :)
+            echo "Error: Option -$OPTARG requires an argument." >&2
+            print_usage
+            exit 1
+            ;;
+        esac
+    done
+    shift $(( OPTIND - 1 ))
+}
 
 #===============================================================================
 # Split the team branch array into three variables
-# usage: get_name
+# Usage: get_name
 # TODO
 #===============================================================================
 function get_name()
@@ -84,13 +89,27 @@ function get_name()
     for line in `echo $1`; do
         IFS='-'
         arr=($line)
-        echo branch_name=${arr[0]}
-        echo branch_type=${arr[1]}
-        echo branch_team=${arr[2]}
+        branch_name=${arr[0]}
+        branch_type=${arr[1]}
+        branch_team=${arr[2]}
     done
+    # Check if names are not empty
+    if [ -z "$branch_name" ] || [ -z "$branch_type" ] || [ -z "$branch_team" ]; then
+        echo "Error: teambranch does not have the correct format. Should be <branch>-<type>-<team>"
+        print_usage
+        exit 1
+    fi
 }
 
-get_name $teambranch
+if [ "$#" -eq 0 ]; then
+    print_usage
+    exit 1
+fi
+
+get_name $(parse_opts "$@")
+echo $branch_name
+echo $branch_type
+echo $branch_team
 
 exit 1
 # Set variables
