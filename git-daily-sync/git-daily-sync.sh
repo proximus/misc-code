@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 #===============================================================================
 #
 #          FILE:  git-daily-sync.sh
@@ -85,8 +85,9 @@ function get_name()
     local IFS=$'\n'
     local arr
     local line
+    local git_branch
 
-    for line in `echo $1`; do
+    for line in $(echo $1); do
         IFS='-'
         arr=($line)
         branch_name=${arr[0]}
@@ -99,6 +100,10 @@ function get_name()
         print_usage
         exit 1
     fi
+    # Check if branch name is in remote
+    #git_branch=$(git branch --no-color -r | grep "^[ ]+origin/$branch_name-$branch_type-$branch_team" | tr -d ' ')
+    git_branch=$(git branch --no-color -r | grep '^[ ]\+origin/master$' | tr -d ' ')
+    #if [ -n "$git_branch" ] && [ -n ]
 }
 
 if [ "$#" -eq 0 ]; then
@@ -113,12 +118,27 @@ echo $branch_team
 
 exit 1
 # Set variables
-if [ "$branch" == "master" ]; then
-    MY_TEAM_BRANCH="master-int-board"
+set MY_TEAM_BRANCH="master-int-board"
 
-    MY_DELIVERY_BRANCH="master"
-    MY_BASELINE_BRANCH="master"
-    GIT_CC_BRANCH="cc-main"
-else
-    echo "hej"
-fi
+set MY_DELIVERY_BRANCH="master"
+set MY_BASELINE_BRANCH="master"
+set GIT_CC_BRANCH="cc-main"
+
+set GIT_PRIMAL_BRANCH="${MY_DELIVERY_BRANCH}"
+set GIT_INTEGRATION_BRANCH="${MY_TEAM_BRANCH}"
+set GIT_BASELINE_BRANCH="${MY_BASELINE_BRANCH}"
+set CLEARCASE_REFERENCE_VIEW="${USER}_${MY_DELIVERY_BRANCH}_reference"
+set CLEARCASE_DELIVERY_VIEW="${USER}_${MY_DELIVERY_BRANCH}_delivery"
+
+
+set MY_TEAM_BRANCH="r48ya-int-board"
+
+set MY_DELIVERY_BRANCH="r48ya"
+set MY_BASELINE_BRANCH="v10.6.0-r48ya"
+set GIT_CC_BRANCH="cc-${MY_DELIVERY_BRANCH}"
+
+set GIT_PRIMAL_BRANCH="${MY_DELIVERY_BRANCH}"
+set GIT_INTEGRATION_BRANCH="${MY_TEAM_BRANCH}"
+set GIT_BASELINE_BRANCH="${MY_BASELINE_BRANCH}"
+set CLEARCASE_REFERENCE_VIEW="${USER}_${MY_DELIVERY_BRANCH}_reference"
+set CLEARCASE_DELIVERY_VIEW="${USER}_${MY_DELIVERY_BRANCH}_delivery"
