@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 #===============================================================================
 #
 #          FILE:  git-daily-sync
@@ -62,13 +62,13 @@ function parse_opts()
             echo ${OPTARG}
             ;;
         d)
-            # TODO: Turn on debug mode
+            # TODO: Turn on debug mode should show more debugging
             set -x
             ;;
         h)
             # Print out help message
             print_usage
-            # TODO: Should return 0 but exit doesnt work correct
+            # TODO: Should return 0 but exit does not work correct
             return 1
             ;;
         \?)
@@ -120,7 +120,7 @@ function get_name()
         return 1
     fi
 
-    # Check if branch type has the right format. Only dev or int is a valid name.
+    # Check if branch type has the right format. Only dev or int is a valid name
     if ! [[ "${branch_type}" =~ ^(dev|int)$ ]]; then
         echo "Error: Branch type is not a valid format"
         return 1
@@ -137,7 +137,7 @@ function get_name()
 
 function run_tests()
 {
-    local MAKE=$1
+    local MAKE="${@}"
 
     ${MAKE} -C sw/make clean            || return 1
     ${MAKE} -C sw/make all              || return 1
@@ -149,7 +149,7 @@ function run_tests()
 #===============================================================================
 # MAIN
 #===============================================================================
-# TODO: Fix this
+# TODO: Move this
 if [ "$#" -eq 0 ]; then
     print_usage
     exit 1
@@ -181,7 +181,7 @@ git fetch
 git reset --hard origin/${GIT_PRIMAL_BRANCH}
 
 # Merge GIT_CC_BRANCH into GIT_PRIMAL_BRANCH
-git merge origin/${GIT_CC_BRANCH}
+git merge --no-edit origin/${GIT_CC_BRANCH}
 
 # Get the latest baseline submodule
 # TODO: Should be made generic for all submodules
@@ -197,11 +197,13 @@ if [[ "${git_status}" =~ ' baseline (new commits)'$ ]]; then
     git commit --amend -m "Merge 'origin/${GIT_CC_BRANCH}', update baseline"
 fi
 
-# If emake is not installed then fall back to regular make.
-MAKE="emake"
-which emake &>/dev/null || MAKE="make -j8"
+# Add bin file to PATH because emake is just an alias to emake_wrapper
+PATH=$PATH:/proj/crbs/radiosw/rswtools/crbs/lib/sh/bin
+MAKE="emake_wrapper"
+# If emake is not installed then fall back to regular make
+which ${MAKE} &>/dev/null || MAKE="make -j8"
 
-# Make sure all xlfs builds and all unittests still pass.
+# Make sure all xlfs builds and all unittests still pass
 run_tests ${MAKE} || exit
 
 # Checkout GIT_INTEGRATION_BRANCH
@@ -213,7 +215,7 @@ git reset --hard origin/${GIT_INTEGRATION_BRANCH}
 # Merge GIT_PRIMAL_BRANCH into GIT_INTEGRATION_BRANCH
 git merge ${GIT_PRIMAL_BRANCH}
 
-# Make sure all xlfs builds and all unittests still pass.
+# Make sure all xlfs builds and all unittests still pass
 run_tests ${MAKE} || exit
 
 # Do a git fetch again to see that no new changes has come in to
