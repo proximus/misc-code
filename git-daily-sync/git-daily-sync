@@ -1,9 +1,9 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 #===============================================================================
 #
-#          FILE:  git-daily-sync.sh
+#          FILE:  git-daily-sync
 #
-#         USAGE:  ./git-daily-sync.sh -b <teambranch>
+#         USAGE:  See git-daily-sync -h
 #
 #   DESCRIPTION:  This program is meant to be a tool for the Integration Branch
 #                 Owner (IBO). It will automatically sync the teambranch and the
@@ -216,9 +216,16 @@ git merge ${GIT_PRIMAL_BRANCH}
 # Make sure all xlfs builds and all unittests still pass.
 run_tests ${MAKE} || exit
 
-echo "!!!NOTE!!!"
+# Do a git fetch again to see that no new changes has come in to
+# GIT_PRIMAL_BRANCH or to GIT_INTEGRATION_BRANCH
 git fetch
 
+echo "==============================================================================="
+echo "You have successfully merged the commits into your local branches:"
+echo "-> ${GIT_PRIMAL_BRANCH}"
+echo "-> ${GIT_INTEGRATION_BRANCH}"
+echo ""
+echo "Check that everything looks good and then manually push the changes to origin:"
 # Push to GIT_PRIMAL_BRANCH
 echo git checkout ${GIT_PRIMAL_BRANCH}
 echo git push origin ${GIT_PRIMAL_BRANCH}
@@ -226,3 +233,5 @@ echo git push origin ${GIT_PRIMAL_BRANCH}
 # Push to GIT_INTEGRATION_BRANCH
 echo git checkout ${GIT_INTEGRATION_BRANCH}
 echo git push origin ${GIT_INTEGRATION_BRANCH}
+echo ""
+echo "==============================================================================="
