@@ -23,13 +23,16 @@
 #
 #===============================================================================
 
+# Global variables
+prog_name=$(basename "$0")
+disable_test=1
+
 #===============================================================================
 # Function will print out help and usage
 # Usage: print_usage
 #===============================================================================
 function print_usage()
 {
-    local prog_name=$(basename "$0")
     echo "Usage: ${prog_name} -b <teambranch> [-h] [-d]
 
 ${prog_name} is a program to do daily integation and sync from a git repository
@@ -37,55 +40,11 @@ ${prog_name} is a program to do daily integation and sync from a git repository
 Options:
     -b <teambranch>     where <team-branch> is in the format <branch>-<type>-<team>. For example:
                         master-int-board, r48ya-int-board, master-int-tr or r48ya-int-tr.
-    -h                  show this help text.
     -d                  show debug information.
+    -h                  show this help text.
 
 Report bugs to samuel.gabrielsson@gmail.com
 Integrator home page: <http://ki81fw4.rnd.ki.sw.ericsson.se/tiki/tiki-index.php?page=RA_Radio_Git_Integration>" >&2
-}
-
-#===============================================================================
-# Function uses getopts to parse the command line options.
-# Usage: parse_opts <options>
-# Return: <args>
-#===============================================================================
-function parse_opts()
-{
-    local prog_name=$(basename "$0")
-
-    # Use getopts to parse the arguments given in the console. Return the
-    # argument using echo to the calling function.
-    while getopts :b:dh arg; do
-        case ${arg} in
-        b)
-            # Echo argument so calling calling function can store it
-            echo ${OPTARG}
-            ;;
-        d)
-            # TODO: Turn on debug mode should show more debugging
-            set -x
-            ;;
-        h)
-            # Print out help message
-            print_usage
-            # TODO: Should return 0 but exit does not work correct
-            return 1
-            ;;
-        \?)
-            # Exit if user has entered an invalid option in the console
-            echo "${prog_name}: invalid option - '${OPTARG}'" >&2
-            echo "Try \`${prog_name} -h' for more information." >&2
-            return 1
-            ;;
-        :)
-            # Exit if user has entered an invalid argument to the option
-            echo "${prog_name}: option - '${OPTARG}' requires an argument" >&2
-            echo "Try \`${prog_name} -h' for more information." >&2
-            return 1
-            ;;
-        esac
-    done
-    shift $(( OPTIND - 1 ))
 }
 
 #===============================================================================
@@ -139,24 +98,62 @@ function run_tests()
 {
     local MAKE="${@}"
 
-    ${MAKE} -C sw/make clean            || return 1
-    ${MAKE} -C sw/make all              || return 1
-    ${MAKE} -C test/unitTest clean      || return 1
-    ${MAKE} -C test/unitTest run_all    || return 1
+    if ! [ "${disable_test}" ]; then
+        ${MAKE} -C sw/make clean            || return 1
+        ${MAKE} -C sw/make all              || return 1
+        ${MAKE} -C test/unitTest clean      || return 1
+        ${MAKE} -C test/unitTest run_all    || return 1
+    fi
     return 0
 }
 
 #===============================================================================
 # MAIN
 #===============================================================================
-# TODO: Move this
 if [ "$#" -eq 0 ]; then
     print_usage
     exit 1
 fi
 
+# Use getopts to parse the arguments given in the console. Return the
+# argument using echo to the calling function.
+while getopts :b:dht arg; do
+    case ${arg} in
+    b)
+        # Echo argument so calling calling function can store it
+        team_branch=${OPTARG}
+        ;;
+    d)
+        # Turn on bash debug mode
+        set -x
+        ;;
+    h)
+        # Print out help message
+        print_usage
+        exit 0
+        ;;
+    t)
+        # Disable build and test
+        disable_test=0
+        ;;
+
+    \?)
+        # Exit if user has entered an invalid option in the console
+        echo "${prog_name}: invalid option - '${OPTARG}'" >&2
+        echo "Try \`${prog_name} -h' for more information." >&2
+        exit 1
+        ;;
+    :)
+        # Exit if user has entered an invalid argument to the option
+        echo "${prog_name}: option - '${OPTARG}' requires an argument" >&2
+        echo "Try \`${prog_name} -h' for more information." >&2
+        exit 1
+        ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
 # Parse the options and save the arguments
-team_branch=$(parse_opts "$@") || exit
 get_name ${team_branch} || exit
 
 # Set variables depending on master branch or other branches
@@ -173,9 +170,11 @@ GIT_BASELINE_BRANCH="${MY_DELIVERY_BRANCH}"
 CLEARCASE_REFERENCE_VIEW="${USER}_${MY_DELIVERY_BRANCH}_reference"
 CLEARCASE_DELIVERY_VIEW="${USER}_${MY_DELIVERY_BRANCH}_delivery"
 
+# Fetch all new commits from remote
+git fetch
+
 # Checkout GIT_PRIMAL_BRANCH and get latest commits from remote repositories
 git checkout ${GIT_PRIMAL_BRANCH}
-git fetch
 
 # Reset your GIT_PRIMAL_BRANCH in case it is in line with remotes/origin/GIT_PRIMAL_BRANCH
 git reset --hard origin/${GIT_PRIMAL_BRANCH}
@@ -219,20 +218,20 @@ run_tests ${MAKE} || exit
 
 # Do a git fetch again to see that no new changes has come in to
 # GIT_PRIMAL_BRANCH or to GIT_INTEGRATION_BRANCH
+# TODO: Find out if this step is necessary? Maybe we should do a goto label?
 git fetch
 
-echo "==============================================================================="
-echo "You have successfully merged the commits into your local branches:"
-echo "-> ${GIT_PRIMAL_BRANCH}"
-echo "-> ${GIT_INTEGRATION_BRANCH}"
-echo ""
-echo "Check that everything looks good and then manually push the changes to origin:"
-# Push to GIT_PRIMAL_BRANCH
-echo git checkout ${GIT_PRIMAL_BRANCH}
-echo git push origin ${GIT_PRIMAL_BRANCH}
+# Push to GIT_PRIMAL_BRANCH and GIT_INTEGRATION_BRANCH
+echo "===============================================================================
 
-# Push to GIT_INTEGRATION_BRANCH
-echo git checkout ${GIT_INTEGRATION_BRANCH}
-echo git push origin ${GIT_INTEGRATION_BRANCH}
-echo ""
-echo "==============================================================================="
+You have successfully merged the commits into your local branches:
+-> ${GIT_PRIMAL_BRANCH}
+-> ${GIT_INTEGRATION_BRANCH}
+
+!!!IMPORTANT!!!
+Check that everything looks good BEFORE you manually push the changes to origin
+with the following commands:
+-> git push origin ${GIT_PRIMAL_BRANCH}:${GIT_PRIMAL_BRANCH}
+-> git push origin ${GIT_INTEGRATION_BRANCH}:${GIT_INTEGRATION_BRANCH}
+
+==============================================================================="
