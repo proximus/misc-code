@@ -212,7 +212,7 @@ git checkout ${GIT_INTEGRATION_BRANCH}
 git reset --hard origin/${GIT_INTEGRATION_BRANCH}
 
 # Merge GIT_PRIMAL_BRANCH into GIT_INTEGRATION_BRANCH
-git merge ${GIT_PRIMAL_BRANCH}
+git merge --no-edit ${GIT_PRIMAL_BRANCH}
 
 # Make sure all xlfs builds and all unittests still pass
 run_tests ${MAKE} || exit
