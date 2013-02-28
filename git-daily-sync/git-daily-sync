@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 #===============================================================================
 #
 #          FILE:  git-daily-sync
@@ -191,8 +191,7 @@ git pull
 popd
 
 # Update baseline if it has new commits.
-git_status=$(git status | grep --color=never 'modified:')
-if [[ "${git_status}" =~ ' baseline (new commits)'$ ]]; then
+if [[ "$(git status | grep --color=never 'modified:')" =~ ' baseline (new commits)'$ ]]; then
     git add baseline
     git commit --amend -m "Merge 'origin/${GIT_CC_BRANCH}', update baseline"
 fi
