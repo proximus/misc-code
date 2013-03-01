@@ -25,6 +25,7 @@
 
 # Global variables
 prog_name=$(basename "$0")
+# Running build and unit tests is enabled by default
 disable_test=1
 
 #===============================================================================
@@ -98,12 +99,15 @@ function run_tests()
 {
     local MAKE="${@}"
 
-    if ! [ "${disable_test}" ]; then
+    if [ ${disable_test} -ne 0 ]; then
         ${MAKE} -C sw/make clean            || return 1
         ${MAKE} -C sw/make all              || return 1
         ${MAKE} -C test/unitTest clean      || return 1
         ${MAKE} -C test/unitTest run_all    || return 1
+    else
+        echo "Warning: You disabled running build tests and unit tests"
     fi
+
     return 0
 }
 
