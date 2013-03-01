@@ -231,10 +231,10 @@ echo "==========================================================================
 
 You have successfully updated branches below in your local repository.
 -> New commits in ${GIT_PRIMAL_BRANCH}:
-$(git log --pretty=format:'%h - %s (%an)' origin/${GIT_PRIMAL_BRANCH}..${GIT_PRIMAL_BRANCH})
+$(git log --pretty=format:'%ad %h - %s (%an)' --date=iso origin/${GIT_PRIMAL_BRANCH}..${GIT_PRIMAL_BRANCH})
 
 -> New commits in ${GIT_INTEGRATION_BRANCH}:
-$(git log --pretty=format:'%h - %s (%an)' origin/${GIT_INTEGRATION_BRANCH}..${GIT_INTEGRATION_BRANCH})
+$(git log --pretty=format:'%ad %h - %s (%an)' --date=iso origin/${GIT_INTEGRATION_BRANCH}..${GIT_INTEGRATION_BRANCH})
 
 !!!IMPORTANT!!!
 Check that everything looks good BEFORE you manually push the changes to origin:
