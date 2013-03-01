@@ -23,11 +23,6 @@
 #
 #===============================================================================
 
-# Global variables
-prog_name=$(basename "$0")
-# Running build and unit tests is enabled by default
-disable_test=1
-
 #===============================================================================
 # Function will print out help and usage
 # Usage: print_usage
@@ -114,6 +109,12 @@ function run_tests()
 #===============================================================================
 # MAIN
 #===============================================================================
+# Global variables
+prog_name=$(basename "$0")
+# Running build and unit tests is enabled by default
+disable_test=1
+
+# Print out help if there are no options given in the console
 if [ "$#" -eq 0 ]; then
     print_usage
     exit 1
