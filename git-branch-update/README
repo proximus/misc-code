@@ -1,0 +1,6 @@
+Note that this program is meant to be a tool for the Integration Branch Owner
+(IBO). It will try to automatically update the teambranch and the tracking
+branch with commits coming from clearcase git repository.
+
+- Samuel Gabrielsson <samuel.gabrielsson@gmail.com>
+

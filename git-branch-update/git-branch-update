@@ -1,9 +1,9 @@
 #!/bin/bash -e
 #===============================================================================
 #
-#          FILE:  git-branch-sync
+#          FILE:  git-branch-update
 #
-#         USAGE:  See git-branch-sync -h
+#         USAGE:  See git-branch-update -h
 #
 #   DESCRIPTION:  This program is meant to be a tool for the Integration Branch
 #                 Owner (IBO). It will automatically sync the teambranch and the
