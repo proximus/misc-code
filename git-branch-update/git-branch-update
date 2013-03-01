@@ -229,13 +229,19 @@ git fetch
 # Push to GIT_PRIMAL_BRANCH and GIT_INTEGRATION_BRANCH
 echo "===============================================================================
 
-You have successfully merged the commits into your local branches:
--> ${GIT_PRIMAL_BRANCH}
--> ${GIT_INTEGRATION_BRANCH}
+You have successfully updated branches below in your local repository.
+-> New commits in ${GIT_PRIMAL_BRANCH}:
+$(git log --pretty=format:'%h - %s (%an)' origin/${GIT_PRIMAL_BRANCH}..${GIT_PRIMAL_BRANCH})
+
+-> New commits in ${GIT_INTEGRATION_BRANCH}:
+$(git log --pretty=format:'%h - %s (%an)' origin/${GIT_INTEGRATION_BRANCH}..${GIT_INTEGRATION_BRANCH})
 
 !!!IMPORTANT!!!
-Check that everything looks good BEFORE you manually push the changes to origin
-with the following commands:
+Check that everything looks good BEFORE you manually push the changes to origin:
+$(git log --graph --decorate --pretty=oneline --abbrev-commit ${GIT_PRIMAL_BRANCH} ${GIT_INTEGRATION_BRANCH} origin/${GIT_PRIMAL_BRANCH} origin/${GIT_INTEGRATION_BRANCH} origin/${GIT_CC_BRANCH} -n 10)
+
+!!!WARNING!!!
+Push with the following commands:
 -> git push origin ${GIT_PRIMAL_BRANCH}:${GIT_PRIMAL_BRANCH}
 -> git push origin ${GIT_INTEGRATION_BRANCH}:${GIT_INTEGRATION_BRANCH}
 
