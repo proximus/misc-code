@@ -231,16 +231,16 @@ echo "==========================================================================
 
 You have successfully updated branches below in your local repository.
 -> New commits in ${GIT_PRIMAL_BRANCH}:
-$(git log --pretty=format:'%ad %h - %s (%an)' --date=iso origin/${GIT_PRIMAL_BRANCH}..${GIT_PRIMAL_BRANCH})
+$(git log --pretty=format:'%ad %h - %s (%an)' --color=auto --date=iso origin/${GIT_PRIMAL_BRANCH}..${GIT_PRIMAL_BRANCH})
 
 -> New commits in ${GIT_INTEGRATION_BRANCH}:
-$(git log --pretty=format:'%ad %h - %s (%an)' --date=iso origin/${GIT_INTEGRATION_BRANCH}..${GIT_INTEGRATION_BRANCH})
+$(git log --pretty=format:'%ad %h - %s (%an)' --color=auto --date=iso origin/${GIT_INTEGRATION_BRANCH}..${GIT_INTEGRATION_BRANCH})
 
-!!!IMPORTANT!!!
+$(echo -e '\e[00;31m!!!IMPORTANT!!!\e[00m')
 Check that everything looks good BEFORE you manually push the changes to origin:
-$(git log --graph --decorate --pretty=oneline --abbrev-commit ${GIT_PRIMAL_BRANCH} ${GIT_INTEGRATION_BRANCH} origin/${GIT_PRIMAL_BRANCH} origin/${GIT_INTEGRATION_BRANCH} origin/${GIT_CC_BRANCH} -n 10)
+$(git log --graph --decorate --pretty=oneline --color=auto --abbrev-commit ${GIT_PRIMAL_BRANCH} ${GIT_INTEGRATION_BRANCH} origin/${GIT_PRIMAL_BRANCH} origin/${GIT_INTEGRATION_BRANCH} origin/${GIT_CC_BRANCH} -n 10)
 
-!!!WARNING!!!
+$(echo -e '\e[00;31m!!!WARNING!!!\e[00m')
 Push with the following commands:
 -> git push origin ${GIT_PRIMAL_BRANCH}:${GIT_PRIMAL_BRANCH}
 -> git push origin ${GIT_INTEGRATION_BRANCH}:${GIT_INTEGRATION_BRANCH}
