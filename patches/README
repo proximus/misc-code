@@ -1,0 +1,2 @@
+gcc-4.6.2 does not compile in LFS 7.1 because when host compiles with
+newer version of gcc. This patch will fix that problem.
