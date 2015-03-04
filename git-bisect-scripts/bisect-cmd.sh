@@ -126,7 +126,7 @@ Options:
     -g <gateway>        OSE gateway. Default is tcp://sekic1339:50001
     -h                  Show this help text.
     -p <position>       Terminal position.
-    -t <testsuite>      Run mira testsuite
+    -t <testsuite>      Run mira testsuite relative MIRA_ROOT directory.
 
 Report bugs to samuel.gabrielsson@gmail.com
 Home page: https://github.com/proximus/misc-code" >&2
