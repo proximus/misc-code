@@ -1,8 +1,33 @@
 #!/bin/bash
 #===============================================================================
-# The point of this program is to execute commands in a controlled way and
-# return an exit status to jenkins so that the gerrit_trigger can verify the
-# patchset in a proper way.
+#
+#          FILE:  exit-status.sh
+#
+#         USAGE:  include exit-status.sh
+#
+#   DESCRIPTION:  Include this library in any script to execute commands and
+#                 handle exit status in a controlled way.
+#
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@ericsson.com)
+#       COMPANY:  ---
+#       VERSION:  1.0
+#       CREATED:  2015-02-12 09:00:00 CET
+#      REVISION:  ---
+#       CHANGES:  ---
+#
+#      EXAMPLES:  run_cmd
+#                 run_cmd "ls -l" -c
+#                 run_cmd
+#                 run_cmd "your_momma sux" -c
+#                 run_cmd "fdisk" -c
+#                 run_cmd "ls -lh"
+#                 run_cmd
+#                 handle_exit
+#
 #===============================================================================
 
 #===============================================================================
@@ -61,6 +86,8 @@ function add_status()
 
 #===============================================================================
 # Function prints a summary of the currently executed commands.
+#
+# Usage: print_summary          # Print summary of exit status and commands
 #===============================================================================
 function print_summary()
 {
@@ -75,6 +102,8 @@ function print_summary()
 #===============================================================================
 # If a command in the list failed to execute and returned an error exit status,
 # then exit the whole program with an unsuccessful exit code.
+#
+# Usage: handle_exit
 #===============================================================================
 function handle_exit()
 {
@@ -91,16 +120,6 @@ function handle_exit()
 
 # Initialize our global array of return status
 return_code=()
+
 # Initialize our global array of commands
 commands=()
-
-run_cmd
-run_cmd "ls -l" -c
-run_cmd
-run_cmd "your_momma sux" -c
-run_cmd "fdisk" -c
-run_cmd "ls -lh"
-run_cmd
-
-# Print a nice summary and return exit status.
-handle_exit
