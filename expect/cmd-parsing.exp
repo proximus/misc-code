@@ -1,0 +1,79 @@
+#!/usr/bin/expect -d
+#===============================================================================
+#
+#          FILE:  cmd-parsing.exp
+#
+#         USAGE:  ./cmd-parsing.exp -q -f myoutfile -D 1 -q -f
+#
+#   DESCRIPTION:  ---
+#
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@gmail.com)
+#       COMPANY:  ---
+#       VERSION:  1.0
+#       CREATED:  2015-03-10 09:00:00 CET
+#      REVISION:  ---
+#       CHANGES:  ---
+#
+#===============================================================================
+
+
+#===============================================================================
+# Function removes the first element of a list and returns it. The list must be
+# passed by name.
+#
+# lshift <inputlist>                # List to be left shifted
+#
+#===============================================================================
+proc lshift {inputlist} {
+   upvar 1 $inputlist argv
+   set arg  [lindex $argv 0]
+   set argv [lreplace $argv[set argv {}] 0 0]
+   return $arg
+ }
+
+#===============================================================================
+# Function adds data to the beginning of a list.
+#
+# unshift <inputlist> <data>         # Data to append to list
+#
+#===============================================================================
+proc rshift {inputlist data} {
+    upvar 1 $inputlist argv
+    set argv [concat $data $argv]
+}
+
+set cmdline $argv
+while { [llength $cmdline] } {
+    set arg [lshift cmdline]
+
+    switch -exact -- $arg {
+        "-D" {
+            # If given with numeric argument then set the debug level
+            # to that number. Otherwise simply set the debug level to 1:
+            set level [lshift cmdline]
+            if { [string is integer $level] } {
+                set debuglevel $level
+            } else {
+                set debuglevel 1
+                unshift cmdline $level
+            }
+        }
+        "-f" {
+            # Specifies output file
+            set outfile [lshift cmdline]
+            puts "Now in -f $outfile"
+        }
+        "-h" {
+            set help 1
+            puts "Now in -h"
+        }
+        "-q" {
+            set quiet 1
+            puts "Now in -q"
+        }
+    }
+}
