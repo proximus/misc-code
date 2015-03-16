@@ -329,14 +329,10 @@ if { [info exists rootfs_] } {
 # MAIN
 #===============================================================================
 proc Send {cmd sid} {
-    if {[catch {send -i $sid "$cmd\r"} err}]} {
+    if { [catch { send -i $sid "$cmd\r" } err ] } {
         puts "error sending to $sid: $err"
-        exit
+        exit 1
     }
-}
-
-proc send_cli { cmd } {
-    send "$cmd\n"
 }
 
 # Spawn a shell and expect a prompt after a couple of seconds.
