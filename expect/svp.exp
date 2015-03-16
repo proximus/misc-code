@@ -348,33 +348,36 @@ expect_prompt $cli_prompt
 send -i $shell_id "create\n"
 expect_prompt $cli_prompt
 
-#send "create\n"
-#expect_prompt $cli_prompt
+send -i $shell_id "setattr top.unnamed1.arm7.eth_export_ports $eth_export_ports\n"
+expect_prompt $cli_prompt
 
-#expect "svp>"
-#send "setattr top.unnamed1.arm7.eth_export_ports $eth_export_ports\n"
-#expect "svp>"
-#send "setattr top.unnamed1.arm7.eth_host_base $eth_host_base\n"
-#expect "svp>"
-#send "setattr top.unnamed1.arm7.eth_enabled $eth_enable\n"
-#
-#expect "svp>"
-#send "start arm 1\n"
-#
-#expect "running to completion"
-#send "\n"
-#expect "svp>"
-#send "load $bootloader_image $bootloader_addr\n"
-#expect "svp>"
-#send "load $uboot_image $uboot_addr\n"
-#expect "svp>"
-#send "load $kernel_image $kernel_addr\n"
-#expect "svp>"
-#send "load $dtb_image $dtb_addr\n"
-#expect "svp>"
-#send "load $rootfs_image $rootfs_addr\n"
-#expect "svp>"
-#send "setattr top.unnamed1.arm7.cpuporeset 0\n"
+send -i $shell_id "setattr top.unnamed1.arm7.eth_host_base $eth_host_base\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "setattr top.unnamed1.arm7.eth_enabled $eth_enable\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "start arm 1\n"
+expect -i $shell_id "running to completion"
+send "\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "load $bootloader_image $bootloader_addr\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "load $uboot_image $uboot_addr\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "load $kernel_image $kernel_addr\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "load $dtb_image $dtb_addr\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "load $rootfs_image $rootfs_addr\n"
+expect_prompt $cli_prompt
+
+send -i $shell_id "setattr top.unnamed1.arm7.cpuporeset 0\n"
 
 puts "\n#==============================================================================="
 puts "Config:"
@@ -386,7 +389,5 @@ puts "set uboot             $uboot"
 puts "set kernel            $kernel"
 puts "set device_tree       $device_tree"
 puts "set rootfs            $rootfs"
-puts "#==============================================================================="
-
 #parray env
-exit 0
+puts "#==============================================================================="
