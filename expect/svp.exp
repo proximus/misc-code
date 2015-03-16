@@ -19,6 +19,18 @@
 #       CHANGES:  ---
 #
 #===============================================================================
+# Disable debug as default
+exp_internal 0
+
+#===============================================================================
+# Function will execute commands when this program is about to exit.
+#
+# exit -onexit                      # Exit function
+#
+#===============================================================================
+exit -onexit {
+    puts "Goodbye!"
+}
 
 #===============================================================================
 # Function will check if a file exists in a given path. Print message if it does
@@ -44,7 +56,8 @@ proc source_config { path } {
     # If file exist, then print message and source the config file
     if { [file exists $path] } {
         puts "Using config file: $path"
-        eval source $path
+        # Evaluate all variables to the global namespace
+        namespace inscope :: eval source $path
         return 1
     } else {
         puts stderr "No config file: $path"
@@ -96,6 +109,21 @@ proc lshift {inputlist} {
 }
 
 #===============================================================================
+# Function will expect a prompt.
+#
+# expect_prompt <prompt>            # Expect prompt
+#
+#===============================================================================
+proc expect_prompt { prompt } {
+    # Expect the prompt to show up
+    expect {
+        -re "(Error: .*)\r\n" { puts "$expect_out(1,string)" }
+        "$prompt" { }
+        default { puts "Error: Failed to expect prompt"; exit 1 }
+    }
+}
+
+#===============================================================================
 # Function will print usage and information on how to run the script.
 #
 # usage                             # Print usage information
@@ -108,7 +136,7 @@ proc usage {} {
     regsub {.*/} $prog "" prog
 
     set usage_message "
-Usage: $prog \[--help]
+Usage: $prog \[--help] \[--debug]
              \[--svp-xsim <dir>]
              \[--config <file>]
              \[--bootloader <file>]
@@ -117,21 +145,23 @@ Usage: $prog \[--help]
 $prog is a program used to run emulated radio
 
 Options:
-    --bootloader <file>     Bootloader file.
+    --bootloader <file>     Bootloader file
 
-    --config <file>         Configuration file.
+    --config <file>         Configuration file
 
-    --device-tree <file>    Device tree blob (dtb) file.
+    --debug                 Enable debug mode
 
-    --help                  Show this help text.
+    --device-tree <file>    Device tree blob (dtb) file
 
-    --kernel <img>          Linux kernel image file.
+    --help                  Show this help text
 
-    --rootfs <img>          Root filesystem image file.
+    --kernel <img>          Linux kernel image file
 
-    --svp-xsim <dir>        SVP XSIM directory.
+    --rootfs <img>          Root filesystem image file
 
-    --uboot <file>          Uboot file.
+    --svp-xsim <dir>        SVP XSIM directory
+
+    --uboot <file>          Uboot file
 
 Report bugs to samuel.gabrielsson@gmail.com
 Home page: https://github.com/proximus/misc-code\n"
@@ -150,9 +180,13 @@ Home page: https://github.com/proximus/misc-code\n"
 set svp_xsim_dir "/proj/svp/release/inofficial/svp_xsim_latest"
 check_default $svp_xsim_dir
 
+# Set a default SVP XSIM setup script if it exists
+set svp_xsim_setup "$svp_xsim_dir/setup.csh"
+check_default $svp_xsim_setup
+
 # Set a default command line interface (CLI) path and check if it exists
-set cli "$svp_xsim_dir/cli"
-check_default $cli
+set svp_xsim_cli "$svp_xsim_dir/cli"
+check_default $svp_xsim_cli
 
 # Set a default bootloader and check if it exists
 set bootloader "$svp_xsim_dir/bin/svp_a7_boot_loader.bin"
@@ -181,6 +215,9 @@ check_default $rootfs
 # Default SVP prompt
 set cli_prompt "svp>"
 
+# Default user SHELL prompt
+set shell_prompt "$env(USER)@*\$ "
+
 # Default target addresses
 set bootloader_addr 0xFFFF0000
 set uboot_addr      0x86000000
@@ -207,6 +244,10 @@ while { [llength $cmdline] } {
         }
         --config {
             set config_ [lshift cmdline]
+        }
+        --debug {
+            log_user 1
+            exp_internal 1
         }
         --device-tree {
             set device_tree_ [lshift cmdline]
@@ -288,12 +329,28 @@ if { [info exists rootfs_] } {
 # MAIN
 #===============================================================================
 
-# Spawn the command line interface (CLI)
-#spawn "$svp_xsim_dir/cli"
-#
-#expect "svp>"
+# Spawn a shell and expect a prompt after a couple of seconds.
+set timeout 5
+spawn $env(SHELL)
+set shell_id $spawn_id
+expect_prompt $shell_prompt
+
+# Create model hierarchy
+puts "Creating model hierarchy..."
+send -i $shell_id "source $svp_xsim_setup xenon\n"
+expect_prompt $shell_prompt
+
+# Start the command line interface (CLI)
+send -i $shell_id "$svp_xsim_cli\n"
+expect_prompt $cli_prompt
+
+# Create the model hierarchy
+send -i $shell_id "create\n"
+expect_prompt $cli_prompt
+
 #send "create\n"
-#
+#expect_prompt $cli_prompt
+
 #expect "svp>"
 #send "setattr top.unnamed1.arm7.eth_export_ports $eth_export_ports\n"
 #expect "svp>"
@@ -321,12 +378,14 @@ if { [info exists rootfs_] } {
 
 puts "\n#==============================================================================="
 puts "Config:"
-puts "set svp_xsim_dir  $svp_xsim_dir"
-puts "set bootloader    $bootloader"
-puts "set uboot         $uboot"
-puts "set kernel        $kernel"
-puts "set device_tree   $device_tree"
-puts "set rootfs        $rootfs"
+puts "set svp_xsim_dir      $svp_xsim_dir"
+puts "set svp_xsim_setup    $svp_xsim_setup"
+puts "set svp_xsim_cli      $svp_xsim_cli"
+puts "set bootloader        $bootloader"
+puts "set uboot             $uboot"
+puts "set kernel            $kernel"
+puts "set device_tree       $device_tree"
+puts "set rootfs            $rootfs"
 puts "#==============================================================================="
 
 #parray env
