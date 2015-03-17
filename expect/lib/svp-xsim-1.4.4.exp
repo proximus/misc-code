@@ -1,0 +1,50 @@
+#===============================================================================
+# Suppor for SVP XSIM v1.4.4
+#===============================================================================
+
+# Uart
+cli_set "set db_uart_io.server_state 1"
+cli_set "set db_uart_io.telnet_terminal 1"
+
+# Ethernet
+cli_set "setattr top.unnamed1.arm7.eth_export_ports $eth_export_ports"
+cli_set "setattr top.unnamed1.arm7.eth_host_base $eth_host_base"
+cli_set "setattr top.unnamed1.arm7.eth_enabled $eth_enable"
+
+# Start simulation
+set timeout 15
+send "on\n"
+expect  {
+    "simulation started" { }
+    default { puts "Error: Failed to start simulation"; exit 1 }
+}
+expect_prompt $cli_prompt
+
+# Load images
+set timeout 10
+send "loadmem top.unnamed1.boot_rom $bootloader $bootloader_addr\n"
+expect_prompt $cli_prompt
+
+set timeout 10
+send "loadmem top.unnamed1.sys_ram $uboot $uboot_addr\n"
+expect_prompt $cli_prompt
+
+set timeout 30
+send "loadmem top.unnamed1.ddr3 $kernel $kernel_addr\n"
+expect_prompt $cli_prompt
+
+set timeout 10
+send "loadmem top.unnamed1.ddr3 $device_tree $dtb_addr\n"
+expect_prompt $cli_prompt
+
+set timeout 60
+send "loadmem top.unnamed1.ddr3 $rootfs $rootfs_addr\n"
+expect_prompt $cli_prompt
+
+# Startup the xterm window
+set timeout 10
+cli_set "setattr top.unnamed1.arm7.cpuporeset 0"
+
+#===============================================================================
+# End
+#===============================================================================

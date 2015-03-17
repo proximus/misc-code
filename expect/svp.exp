@@ -47,6 +47,26 @@ proc check_default { path } {
 }
 
 #===============================================================================
+# Function will check if a file exists in a given path. Print message if it does
+# not exist and exit.
+#
+# check_default <path>              # Check if path exists
+#
+#===============================================================================
+proc check { path } {
+
+    # Check if file exist and return its path if it does.
+    if { [file exists $path] } {
+        return $path
+    } else {
+        # Print a message and exit if file does not exist.
+        puts stderr "Does not exist: $path"
+        puts "Exiting..."
+        exit 1
+    }
+}
+
+#===============================================================================
 # Function will check if a file exists in the given path and try to source it.
 #
 # source_config <path>               # Check if path exists
@@ -62,26 +82,6 @@ proc source_config { path } {
     } else {
         puts stderr "No config file: $path"
         return 0
-    }
-}
-
-#===============================================================================
-# Function will check if a file exists in a given path. Print message if it does
-# not exist and exit.
-#
-# check_default <path>              # Check if path exists
-#
-#===============================================================================
-proc check_cmdline { path } {
-
-    # Check if file exist and return its path if it does.
-    if { [file exists $path] } {
-        return $path
-    } else {
-        # Print a message and exit if file does not exist.
-        puts stderr "Does not exist: $path"
-        puts "Exiting..."
-        exit 1
     }
 }
 
@@ -117,10 +117,27 @@ proc lshift {inputlist} {
 proc expect_prompt { prompt } {
     # Expect the prompt to show up
     expect {
-        -re "(Error: .*)\r\n" { puts "$expect_out(1,string)" }
+        -re "(Error: .*)\r\n" { puts "$expect_out(1,string)"; exit 1 }
         "$prompt" { }
         default { puts "Error: Failed to expect prompt"; exit 1 }
     }
+}
+
+#===============================================================================
+# Function will set a value in the cli and check for faults
+#
+# cli_set <cmd>                     # Run a command on the cli
+#
+#===============================================================================
+proc cli_set { cmd } {
+    send "$cmd\r"
+    expect {
+        -re "\r\n(\[S|s]et .* to .*)\r\n" { puts "$expect_out(1,string)" }
+        -re "\r\n(\[U|u]nable to set .* to .*)\r\n" { puts "Error: $expect_out(1,string)"; exit 1 }
+        "(Error: syntax error)" { puts "$expect_out(1,string)"; exit 1 }
+        default { puts "Error: Failed to run command: $cmd"; exit 1 }
+    }
+    expect_prompt $::cli_prompt
 }
 
 #===============================================================================
@@ -176,8 +193,14 @@ Home page: https://github.com/proximus/misc-code\n"
 #===============================================================================
 # Default variables
 
+# Get the path to this script
+set prog_dir [file dirname [info script]]
+
+# Default SVP XSIM version is latest
+set svp_xsim_version "latest"
+
 # Set a default SVP XSIM directory and check if it exists
-set svp_xsim_dir "/proj/svp/release/inofficial/svp_xsim_latest"
+set svp_xsim_dir "/proj/svp/release/inofficial/svp_xsim_$svp_xsim_version"
 check_default $svp_xsim_dir
 
 # Set a default SVP XSIM setup script if it exists
@@ -193,7 +216,7 @@ set bootloader "$svp_xsim_dir/bin/svp_a7_boot_loader.bin"
 check_default $bootloader
 
 # Set a default images directory and check if it exists
-set img_dir "/proj/ghost/users/xenon/PA17"
+set img_dir "/proj/ghost/users/xenon/PA16"
 check_default $img_dir
 
 # Set a default uboot and check if it exists
@@ -209,27 +232,14 @@ set device_tree "$img_dir/uImage-xenon.dtb"
 check_default $device_tree
 
 # Set default root filesystem image and check if it exists
-set rootfs "$img_dir/rootfs-dev-xenon.cpio.xz.u-boot"
+set rootfs    "$img_dir/rootfs-dev-xenon.cpio.xz.u-boot"
 check_default $rootfs
 
 # Default SVP prompt
-set cli_prompt "svp>"
+set cli_prompt      "svp>"
 
 # Default user SHELL prompt
-set shell_prompt "$env(USER)@*\$ "
-
-# Default target addresses
-set bootloader_addr 0xFFFF0000
-set uboot_addr      0x86000000
-set kernel_addr     0xA00000
-set dtb_addr        0x10000000
-set rootfs_addr     0x08000000
-set lmc_addr        0x20000000
-
-# Default ethernet configuration
-set eth_export_ports 22,23
-set eth_host_base    50000
-set eth_enable       1
+set shell_prompt    "$env(USER)@*\$ "
 
 #===============================================================================
 # Parse arguments from commandline
@@ -297,96 +307,37 @@ if { [info exists config_] } {
 #===============================================================================
 # Set SVP XSIM directory variable
 if { [info exists svp_xsim_dir_] } {
-    set svp_xsim_dir [check_cmdline $svp_xsim_dir_]
+    set svp_xsim_dir [check $svp_xsim_dir_]
 }
 
 # Set bootloader variable
 if { [info exists bootloader_] } {
-    set bootloader [check_cmdline $bootloader_]
+    set bootloader [check $bootloader_]
 }
 
 # Set uboot variable
 if { [info exists uboot_] } {
-    set uboot [check_cmdline $uboot_]
+    set uboot [check $uboot_]
 }
 
 # Set kernel image variable
 if { [info exists kernel_] } {
-    set kernel [check_cmdline $kernel_]
+    set kernel [check $kernel_]
 }
 
 # Set device tree blob variable
 if { [info exists device_tree_] } {
-    set device_tree [check_cmdline $device_tree_]
+    set device_tree [check $device_tree_]
 }
 
 # Set root filesystem image variable
 if { [info exists rootfs_] } {
-    set rootfs [check_cmdline $rootfs_]
+    set rootfs [check $rootfs_]
 }
-
-#===============================================================================
-# MAIN
-#===============================================================================
-proc Send {cmd sid} {
-    if { [catch { send -i $sid "$cmd\r" } err ] } {
-        puts "error sending to $sid: $err"
-        exit 1
-    }
-}
-
-# Spawn a shell and expect a prompt after a couple of seconds.
-set timeout 5
-spawn $env(SHELL)
-set shell_id $spawn_id
-expect_prompt $shell_prompt
-
-# Create model hierarchy
-puts "Creating model hierarchy..."
-send -i $shell_id "source $svp_xsim_setup xenon\n"
-expect_prompt $shell_prompt
-
-# Start the command line interface (CLI)
-send -i $shell_id "$svp_xsim_cli\n"
-expect_prompt $cli_prompt
-
-# Create the model hierarchy
-send -i $shell_id "create\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "setattr top.unnamed1.arm7.eth_export_ports $eth_export_ports\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "setattr top.unnamed1.arm7.eth_host_base $eth_host_base\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "setattr top.unnamed1.arm7.eth_enabled $eth_enable\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "start arm 1\n"
-expect -i $shell_id "running to completion"
-send "\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "load $bootloader_image $bootloader_addr\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "load $uboot_image $uboot_addr\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "load $kernel_image $kernel_addr\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "load $dtb_image $dtb_addr\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "load $rootfs_image $rootfs_addr\n"
-expect_prompt $cli_prompt
-
-send -i $shell_id "setattr top.unnamed1.arm7.cpuporeset 0\n"
 
 puts "\n#==============================================================================="
 puts "Config:"
+puts "set svp_xsim_version  $svp_xsim_version"
 puts "set svp_xsim_dir      $svp_xsim_dir"
 puts "set svp_xsim_setup    $svp_xsim_setup"
 puts "set svp_xsim_cli      $svp_xsim_cli"
@@ -395,5 +346,74 @@ puts "set uboot             $uboot"
 puts "set kernel            $kernel"
 puts "set device_tree       $device_tree"
 puts "set rootfs            $rootfs"
-#parray env
 puts "#==============================================================================="
+
+#===============================================================================
+# MAIN
+#===============================================================================
+# Spawn a shell and expect a prompt after a couple of seconds.
+set timeout 5
+spawn $env(SHELL)
+set shell_id $spawn_id
+expect_prompt $shell_prompt
+
+# Source SVP XSIM setup file
+puts "Sourcing SVP XSIM setup file..."
+send -i $shell_id "source $svp_xsim_setup xenon; echo $?\n"
+expect {
+    "\r\n0\r\n" { puts "Done sourcing SVP XSIM setup file" }
+    default {puts "Error: Failed to source SVP XSIM setup file"; exit 1 }
+}
+expect_prompt $shell_prompt
+
+# Start the command line interface (CLI)
+set timeout 5
+send -i $shell_id "$svp_xsim_cli\n"
+expect_prompt $cli_prompt
+
+#===============================================================================
+# Source SVP XSIM library file dependent on version
+#
+# Supports (PA16) SVP XSIM v1.4.2
+# Supports (PA17) SVP XSIM v1.4.3
+# Supports (PA18) SVP XSIM v1.4.4
+#
+#===============================================================================
+# Sourcing will work, no matter what the current processess directory is and
+# where the project directory is located
+switch -exact -- $svp_xsim_version {
+    "1.4.2" {
+        source [file join $prog_dir lib/svp-xsim-1.4.2.exp]
+    }
+    "1.4.3" {
+        source [file join $prog_dir lib/svp-xsim-1.4.3.exp]
+    }
+    "1.4.4" {
+        source [file join $prog_dir lib/svp-xsim-1.4.4.exp]
+    }
+    default { puts stderr "Error: Unknown SVP XSIM version: $svp_xsim_version"; exit 1 }
+}
+
+#===============================================================================
+# End of sourcing version file
+#===============================================================================
+
+set timeout 1
+# Enter interact mode.
+# NOTE Fix interact mode later.
+set CTRLZ \032
+set EXIT \003
+interact {
+    -reset $CTRLZ {
+        exec kill -STOP [pid]
+    }
+    \001 {
+        send_user "you typed a control-A\n"
+        exp_send "\001"
+    }
+    $ {
+        send_user "The date is [exec date]."
+    }
+    \033    exit
+    ~~
+}
