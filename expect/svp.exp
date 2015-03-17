@@ -5,7 +5,7 @@
 #
 #         USAGE:  ./svp.exp --help
 #
-#   DESCRIPTION:  Start up simulation
+#   DESCRIPTION:  Start up SVP XSIM simulation
 #
 #       OPTIONS:  ---
 #  REQUIREMENTS:  ---
@@ -23,7 +23,7 @@
 exp_internal 0
 
 #===============================================================================
-# Function will execute commands when this program is about to exit.
+# Function will execute commands when this program is about to exit
 #
 # exit -onexit                      # Exit function
 #
@@ -33,24 +33,43 @@ exit -onexit {
 }
 
 #===============================================================================
-# Function will check if a file exists in a given path. Print message if it does
-# not exist.
+# Function will search for the latest version of a file in directory
 #
-# check_default <path>              # Check if path exists
+# latest_file <dir>                 # Return latest version of file in directory
 #
 #===============================================================================
-proc check_default { path } {
-    # If file does not exist, then print a message
-    if { ![file exists $path] } {
-        puts stderr "Does not exist: $path"
-    }
+proc latest_file { dir } {
+    return [lindex [lsort -dictionary -decreasing -nocase [glob -dir $dir svp-xsim-*]] 0]
+}
+
+#===============================================================================
+# Function removes the first element of a list and returns it. The list must be
+# passed by name.
+#
+# lshift <inputlist>                # List to be left shifted
+#
+#===============================================================================
+proc lshift { inputlist } {
+
+    # Upvar will create a link to a variable in a different stack frame, i.e. we
+    # let the local variable refer to a global variable.
+    upvar 1 $inputlist argv
+
+    # Save the first element in the list
+    set arg [lindex $argv 0]
+
+    # Replace an element of a list with another
+    set argv [lreplace $argv[set argv {}] 0 0]
+
+    # Return the left shifted element
+    return $arg
 }
 
 #===============================================================================
 # Function will check if a file exists in a given path. Print message if it does
 # not exist and exit.
 #
-# check_default <path>              # Check if path exists
+# check <path>                      # Check if path exists
 #
 #===============================================================================
 proc check { path } {
@@ -60,14 +79,13 @@ proc check { path } {
         return $path
     } else {
         # Print a message and exit if file does not exist.
-        puts stderr "Does not exist: $path"
-        puts "Exiting..."
+        puts stderr "Error: File does not exist: $path"
         exit 1
     }
 }
 
 #===============================================================================
-# Function will check if a file exists in the given path and try to source it.
+# Function will check if a file exists in the given path and try to source it
 #
 # source_config <path>               # Check if path exists
 #
@@ -80,36 +98,13 @@ proc source_config { path } {
         namespace inscope :: eval source $path
         return 1
     } else {
-        puts stderr "No config file: $path"
+        puts stderr "Error: No config file: $path"
         return 0
     }
 }
 
 #===============================================================================
-# Function removes the first element of a list and returns it. The list must be
-# passed by name.
-#
-# lshift <inputlist>                # List to be left shifted
-#
-#===============================================================================
-proc lshift {inputlist} {
-
-    # Upvar will create a link to a variable in a different stack frame, i.e. we
-    # let the local variable refer to a global variable.
-    upvar 1 $inputlist argv
-
-    # Save the first element in the list
-    set arg  [lindex $argv 0]
-
-    # Replace an element of a list with another
-    set argv [lreplace $argv[set argv {}] 0 0]
-
-    # Return the left shifted element
-    return $arg
-}
-
-#===============================================================================
-# Function will expect a prompt.
+# Function will expect a prompt
 #
 # expect_prompt <prompt>            # Expect prompt
 #
@@ -141,7 +136,7 @@ proc cli_set { cmd } {
 }
 
 #===============================================================================
-# Function will print usage and information on how to run the script.
+# Function will print usage and information on how to run the script
 #
 # usage                             # Print usage information
 #
@@ -188,58 +183,27 @@ Home page: https://github.com/proximus/misc-code\n"
 }
 
 #===============================================================================
-# Precedense 4
-# - Can be replaced by variables in precedense 1, 2 and 3.
+# Variables defined as default variables will be:
+# - replaced by matching variables in config files or from command line
 #===============================================================================
 # Default variables
 
 # Get the path to this script
 set prog_dir [file dirname [info script]]
 
-# Default SVP XSIM version is latest
-set svp_xsim_version "latest"
+# Default config and lib directory
+set cfg_dir [file join $prog_dir cfg]
+set lib_dir [file join $prog_dir lib]
 
-# Set a default SVP XSIM directory and check if it exists
-set svp_xsim_dir "/proj/svp/release/inofficial/svp_xsim_$svp_xsim_version"
-check_default $svp_xsim_dir
-
-# Set a default SVP XSIM setup script if it exists
-set svp_xsim_setup "$svp_xsim_dir/setup.csh"
-check_default $svp_xsim_setup
-
-# Set a default command line interface (CLI) path and check if it exists
-set svp_xsim_cli "$svp_xsim_dir/cli"
-check_default $svp_xsim_cli
-
-# Set a default bootloader and check if it exists
-set bootloader "$svp_xsim_dir/bin/svp_a7_boot_loader.bin"
-check_default $bootloader
-
-# Set a default images directory and check if it exists
-set img_dir "/proj/ghost/users/xenon/PA16"
-check_default $img_dir
-
-# Set a default uboot and check if it exists
-set uboot "$img_dir/bootimage.bin"
-check_default $uboot
-
-# Set a default kernel image and check if it exists
-set kernel "$img_dir/uImage-xenon.bin"
-check_default $kernel
-
-# Set default device tree blob and check if it exists
-set device_tree "$img_dir/uImage-xenon.dtb"
-check_default $device_tree
-
-# Set default root filesystem image and check if it exists
-set rootfs    "$img_dir/rootfs-dev-xenon.cpio.xz.u-boot"
-check_default $rootfs
+# Default (latest) SVP XSIM config and lib files
+set cfg_file [latest_file $cfg_dir]
+set lib_file [latest_file $lib_dir]
 
 # Default SVP prompt
-set cli_prompt      "svp>"
+set cli_prompt "svp>"
 
 # Default user SHELL prompt
-set shell_prompt    "$env(USER)@*\$ "
+set shell_prompt "$env(USER)@*\$ "
 
 #===============================================================================
 # Parse arguments from commandline
@@ -282,28 +246,27 @@ while { [llength $cmdline] } {
 }
 
 #===============================================================================
-# Precedense 3 will:
-#   - replace matching default variables.
+# Variables defined in config file will be:
+#   - replaced by matching default variables
 #===============================================================================
-# Source default config file
-set default_config "~/.svp/default.conf"
-source_config $default_config
-
-#===============================================================================
-# Precedence 2 will:
-#   - replace matching default variables.
-#   - replace matching variables set in main config file.
-#===============================================================================
-# Source config file from commandline
+# If config file is defined in command line, then source it. Otherwise, use
+# latest config file but exit if it fails.
 if { [info exists config_] } {
-    if { ![source_config $config_] } { puts "Exiting..."; exit 1 }
+    # If config file does not exist, then exit with error
+    if { ![source_config $config_] } {
+        puts "Error: Failed to source: $config_"; exit 1
+    }
+} else {
+    # If default config file does not exist, then exit with error
+    if { ![source_config $cfg_file] } {
+        puts "Error: Failed to source: $cfg_file"; exit 1
+    }
 }
 
 #===============================================================================
-# Precedence 1 will:
-#   - replace matching default variable.
-#   - replace matching variable set in main config file.
-#   - replace matching variable set in commandline config file.
+# Variables defined in command line will be:
+#   - replaced by matching default variables
+#   - replaced by matching variables set in any config file
 #===============================================================================
 # Set SVP XSIM directory variable
 if { [info exists svp_xsim_dir_] } {
@@ -335,13 +298,60 @@ if { [info exists rootfs_] } {
     set rootfs [check $rootfs_]
 }
 
+#===============================================================================
+# Do sanity check of defined variables:
+#
+# set svp_xsim_dir      /proj/svp/release/inofficial/svp_xsim_<latest>
+# set svp_xsim_setup    $svp_xsim_dir/setup.csh
+# set svp_xsim_cli      $svp_xsim_dir/cli
+# set bootloader        $svp_xsim_dir/bin/svp_a7_boot_loader.bin
+#
+# set img_dir           /proj/ghost/users/xenon/LATEST
+# set uboot             $img_dir/bootimage.bin
+# set kernel            $img_dir/uImage-xenon.bin
+# set device_tree       $img_dir/uImage-xenon.dtb
+# set rootfs            $img_dir/rootfs-dev-xenon.cpio.xz.u-boot
+#
+#===============================================================================
+# Check if SVP XSIM directory exists
+check $svp_xsim_dir
+
+# Check if SVP XSIM setup script exists
+check $svp_xsim_setup
+
+# Check if SVP XSIM CLI program exists
+check $svp_xsim_cli
+
+# Check if ARM Cortex-A7 bootloader exists
+check $bootloader
+
+# Check if Images directory exists
+check $img_dir
+
+# Check if Uboot exists
+check $uboot
+
+# Check if Linux Kernel exists
+check $kernel
+
+# Check if Device Tree Blob exists
+check $device_tree
+
+# Check if Root Filesystem Image exists
+check $rootfs
+
 puts "\n#==============================================================================="
 puts "Config:"
-puts "set svp_xsim_version  $svp_xsim_version"
+puts $prog_dir
+puts $cfg_dir
+puts $cfg_file
+puts $lib_dir
+puts $lib_file
 puts "set svp_xsim_dir      $svp_xsim_dir"
 puts "set svp_xsim_setup    $svp_xsim_setup"
 puts "set svp_xsim_cli      $svp_xsim_cli"
 puts "set bootloader        $bootloader"
+puts "set img_dir           $img_dir"
 puts "set uboot             $uboot"
 puts "set kernel            $kernel"
 puts "set device_tree       $device_tree"
@@ -351,7 +361,7 @@ puts "#=========================================================================
 #===============================================================================
 # MAIN
 #===============================================================================
-# Spawn a shell and expect a prompt after a couple of seconds.
+# Spawn a shell and expect a prompt after a couple of seconds
 set timeout 5
 spawn $env(SHELL)
 set shell_id $spawn_id
@@ -371,36 +381,14 @@ set timeout 5
 send -i $shell_id "$svp_xsim_cli\n"
 expect_prompt $cli_prompt
 
-#===============================================================================
 # Source SVP XSIM library file dependent on version
-#
-# Supports (PA16) SVP XSIM v1.4.2
-# Supports (PA17) SVP XSIM v1.4.3
-# Supports (PA18) SVP XSIM v1.4.4
-#
-#===============================================================================
-# Sourcing will work, no matter what the current processess directory is and
-# where the project directory is located
-switch -exact -- $svp_xsim_version {
-    "1.4.2" {
-        source [file join $prog_dir lib/svp-xsim-1.4.2.exp]
-    }
-    "1.4.3" {
-        source [file join $prog_dir lib/svp-xsim-1.4.3.exp]
-    }
-    "1.4.4" {
-        source [file join $prog_dir lib/svp-xsim-1.4.4.exp]
-    }
-    default { puts stderr "Error: Unknown SVP XSIM version: $svp_xsim_version"; exit 1 }
+if { ![source_config $lib_file] } {
+    puts "Error: Failed to source: $lib_file"; exit 1
 }
 
-#===============================================================================
-# End of sourcing version file
-#===============================================================================
-
 set timeout 1
-# Enter interact mode.
-# NOTE Fix interact mode later.
+# Enter interact mode
+# NOTE Fix interact mode later. Maybe send exit in on-exit function.
 set CTRLZ \032
 set EXIT \003
 interact {
