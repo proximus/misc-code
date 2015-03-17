@@ -8,7 +8,7 @@
 #   DESCRIPTION:  Start up SVP XSIM simulation
 #
 #       OPTIONS:  ---
-#  REQUIREMENTS:  ---
+#  REQUIREMENTS:  SVP XSIM
 #          BUGS:  ---
 #         NOTES:  ---
 #        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@ericsson.com)
@@ -149,10 +149,10 @@ proc usage {} {
 
     set usage_message "
 Usage: $prog \[--help] \[--debug]
-             \[--svp-xsim <dir>]
-             \[--config <file>]
-             \[--bootloader <file>]
-             \[--uboot <file>] \[--kernel <img>] \[--device-tree <file>] \[--rootfs <img>]
+               \[--svp-xsim <dir>]
+               \[--config <file>]
+               \[--bootloader <file>]
+               \[--uboot <file>] \[--kernel <img>] \[--device-tree <file>] \[--rootfs <img>]
 
 $prog is a program used to run emulated radio
 
