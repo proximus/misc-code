@@ -29,6 +29,9 @@ exp_internal 0
 #
 #===============================================================================
 exit -onexit {
+    if { [info exists ::shell_id] } {
+        send -i $::shell_id "exit\n"
+    }
     puts "Goodbye!"
 }
 
@@ -252,9 +255,10 @@ while { [llength $cmdline] } {
 # If config file is defined in command line, then source it. Otherwise, use
 # latest config file but exit if it fails.
 if { [info exists config_] } {
+    set cfg_file $config_
     # If config file does not exist, then exit with error
-    if { ![source_config $config_] } {
-        puts "Error: Failed to source: $config_"; exit 1
+    if { ![source_config $cfg_file] } {
+        puts "Error: Failed to source: $cfg_file"; exit 1
     }
 } else {
     # If default config file does not exist, then exit with error
@@ -342,11 +346,11 @@ check $rootfs
 
 puts "\n#==============================================================================="
 puts "Config:"
-puts $prog_dir
-puts $cfg_dir
-puts $cfg_file
-puts $lib_dir
-puts $lib_file
+puts "prog_dir = $prog_dir"
+puts "cfg_dir  = $cfg_dir"
+puts "cfg_file = $cfg_file"
+puts "lib_dir  = $lib_dir"
+puts "lib_file = $lib_file"
 puts "set svp_xsim_dir      $svp_xsim_dir"
 puts "set svp_xsim_setup    $svp_xsim_setup"
 puts "set svp_xsim_cli      $svp_xsim_cli"
