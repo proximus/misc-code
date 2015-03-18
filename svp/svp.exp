@@ -1,11 +1,13 @@
-#!/usr/bin/expect -d
+#!/usr/bin/expect
 #===============================================================================
 #
 #          FILE:  svp.exp
 #
 #         USAGE:  ./svp.exp --help
 #
-#   DESCRIPTION:  Start up SVP XSIM simulation
+#   DESCRIPTION:  Start up SVP XSIM simulation.
+#
+#                 Default is to use latest config file in cfg directory.
 #
 #       OPTIONS:  ---
 #  REQUIREMENTS:  SVP XSIM
@@ -344,24 +346,6 @@ check $device_tree
 # Check if Root Filesystem Image exists
 check $rootfs
 
-puts "\n#==============================================================================="
-puts "Config:"
-puts "prog_dir = $prog_dir"
-puts "cfg_dir  = $cfg_dir"
-puts "cfg_file = $cfg_file"
-puts "lib_dir  = $lib_dir"
-puts "lib_file = $lib_file"
-puts "set svp_xsim_dir      $svp_xsim_dir"
-puts "set svp_xsim_setup    $svp_xsim_setup"
-puts "set svp_xsim_cli      $svp_xsim_cli"
-puts "set bootloader        $bootloader"
-puts "set img_dir           $img_dir"
-puts "set uboot             $uboot"
-puts "set kernel            $kernel"
-puts "set device_tree       $device_tree"
-puts "set rootfs            $rootfs"
-puts "#==============================================================================="
-
 #===============================================================================
 # MAIN
 #===============================================================================
@@ -392,7 +376,7 @@ if { ![source_config $lib_file] } {
 
 set timeout 1
 # Enter interact mode
-# NOTE Fix interact mode later. Maybe send exit in on-exit function.
+# NOTE! Exit mode needs to be handled in a better way.
 set CTRLZ \032
 set EXIT \003
 interact {
@@ -402,9 +386,6 @@ interact {
     \001 {
         send_user "you typed a control-A\n"
         exp_send "\001"
-    }
-    $ {
-        send_user "The date is [exec date]."
     }
     \033    exit
     ~~
