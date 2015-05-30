@@ -3,7 +3,7 @@
 #
 #          FILE:  git-mirror.sh
 #
-#         USAGE:  ./git-mirror.sh --help
+#         USAGE:  ./git-mirror.sh -h
 #
 #   DESCRIPTION:  Mirror repositories by initializing (cloning) them locally and
 #                 syncronizing (fetch and push) them from source to destination.
@@ -82,7 +82,6 @@ function add_status()
 #===============================================================================
 function print_summary()
 {
-    echo ""
     echo "#==============================================================================="
     echo "# SUMMARY:"
     for index in ${!return_code[*]}; do
@@ -131,13 +130,13 @@ ${prog_name} is a program used to mirror repositories
 
 Usage:
     ${prog_name} [options]
-    ${prog_name} --init --sync
+    ${prog_name}        Syncronize repositories to mirror
+    ${prog_name} -i     Initialize and syncronize repositories to mirror
 
 Options:
     -h, --help          Show this help text
     -d, --debug         Show debug information
     -i, --init          Initialize all repositories locally
-    -s, --sync          Syncronize all repositories to mirror
 
 Report bugs to samuel.gabrielsson@gmail.com" >&2
 }
@@ -153,12 +152,11 @@ prog_name=$(basename "$0")
 
 # Initialize variables
 do_init=false
-do_sync=false
 
 #===============================================================================
 # Parse arguments from commandline using bash builtin getopts
 #===============================================================================
-#while getopts dha:is arg; do
+#while getopts dhi arg; do
 #    case ${arg} in
 #    d)
 #        # Turn on bash debug mode
@@ -169,14 +167,8 @@ do_sync=false
 #        print_usage
 #        exit 0
 #        ;;
-#    a)
-#        my_arg=0
-#        ;;
 #    i)
 #        do_init=true
-#        ;;
-#    s)
-#        do_sync=true
 #        ;;
 #    \?)
 #        # Exit if user has entered an invalid option in the console
@@ -196,21 +188,15 @@ do_sync=false
 
 #===============================================================================
 # Parse arguments from commandline using getopt
-#
-# NOTE! Never use getopt(1). Getopt cannot handle empty arguments strings, or
-#       arguments with embedded whitespace. Please forget that it ever existed.
 #===============================================================================
-SHORTOPTS="hdis"
-LONGOPTS="help,debug,init,sync"
+SHORTOPTS="hdi"
+LONGOPTS="help,debug,init"
 OPTS=$(getopt --name "$0" \
               --options ${SHORTOPTS} \
               --longoptions ${LONGOPTS} \
               -- "$@")
-# Print help and quit if
-# 1. exit status of getopt returns error or
-# 2. user has not passed any options or
-# 3. ...?
-if [ $? != 0 ] || [ $# = 0 ]; then
+# Print help and quit if exit status of getopt returns an error
+if [ $? != 0 ]; then
     print_usage
     exit 1
 fi
@@ -233,12 +219,6 @@ while true; do
         do_init=true
         shift
         ;;
-    -s|--sync)
-        # Set syncronization to true
-        do_sync=true
-        shift
-        ;;
-
     --)
         # Shift opts and break the while loop
         shift
@@ -262,6 +242,9 @@ repos=( ["git@github.com:proximus/samuel-cv.git"]="file:///home/proximus/src/mis
 
 # Initialize (clone) all repositories
 if [ "${do_init}" = true ] ; then
+    echo "#==============================================================================="
+    echo "# Initializing all repositories:"
+    echo "#==============================================================================="
     # Loop through all keys in an associative array
     for repo in "${!repos[@]}"; do
         # Make a bare mirrored clone of the repository
@@ -269,24 +252,26 @@ if [ "${do_init}" = true ] ; then
     done
 fi
 
-# Syncronize all (fetch and push) repositories
-if [ "${do_sync}" = true ] ; then
-    # Loop through all keys in an associative array
-    for repo in "${!repos[@]}"; do
+echo "#==============================================================================="
+echo "# Syncronizing all repositories:"
+echo "#==============================================================================="
+for repo in "${!repos[@]}"; do
 
-        # Go to the repository
-        pushd "${repo##*/}" > /dev/null
+    # Go to the repository
+    pushd "${repo##*/}" > /dev/null
 
-        # Set the push location to your mirror
-        run_cmd "git remote set-url --push origin ${repos[$repo]}"
+    # Make a bare mirrored clone of the repository
+    #run_cmd "git push --mirror ${repos[$repo]}"
 
-        # To update the mirror, fetch updates and push
-        run_cmd "git fetch -p origin"
-        run_cmd "git push --mirror"
+    # Set the push location to your mirror
+    run_cmd "git remote set-url --push origin ${repos[$repo]}"
 
-        popd > /dev/null
-    done
-fi
+    # To update the mirror, fetch updates and push
+    run_cmd "git fetch -p origin"
+    run_cmd "git push --mirror"
+
+    popd > /dev/null
+done
 
 # Print a nice summary and return with appropriate exit status
 handle_exit

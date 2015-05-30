@@ -1,7 +1,8 @@
-Git mirror will try to mirror a list of remote repositories.
+Git mirror will try to duplicate repositories to a mirror.
 
-You can start with initializing them once locally as bare repositories:
-$ ./git-mirror --init
+The first time you run, you need to initialize the repositories and syncronize
+them to the mirror:
+$ ./git-mirror -i
 
-To syncronize the mirror repository:
-$ ./git-mirror --sync
+To only syncronize the repository to the mirror:
+$ ./git-mirror
