@@ -3,10 +3,10 @@
 #
 #          FILE:  git-mirror.sh
 #
-#         USAGE:  ./git-mirror.sh
+#         USAGE:  ./git-mirror.sh --help
 #
-#   DESCRIPTION:  Mirror and syncronize repos from one target server to
-#                 destination server.
+#   DESCRIPTION:  Mirror repositories by initializing (cloning) them locally and
+#                 syncronizing (fetch and push) them from source to destination.
 #
 #       OPTIONS:  ---
 #  REQUIREMENTS:  ---
@@ -126,14 +126,18 @@ function is_set()
 #===============================================================================
 function print_usage()
 {
-    echo "Usage: ${prog_name} [--help] [--debug] [--clone]
+    echo "
+${prog_name} is a program used to mirror repositories
 
-${prog_name} is a program used with git bisect to automate testing
+Usage:
+    ${prog_name} [options]
+    ${prog_name} --init --sync
 
 Options:
-    -h or --help        Show this help text
-    -d or --debug       Show debug information
-    -c or --clone       Clone bare repositories
+    -h, --help          Show this help text
+    -d, --debug         Show debug information
+    -i, --init          Initialize all repositories locally
+    -s, --sync          Syncronize all repositories to mirror
 
 Report bugs to samuel.gabrielsson@gmail.com" >&2
 }
@@ -147,12 +151,14 @@ commands=()
 # Program name
 prog_name=$(basename "$0")
 
+# Initialize variables
+do_init=false
+do_sync=false
+
 #===============================================================================
 # Parse arguments from commandline using bash builtin getopts
 #===============================================================================
-#do_clone=false
-
-#while getopts dha:c arg; do
+#while getopts dha:is arg; do
 #    case ${arg} in
 #    d)
 #        # Turn on bash debug mode
@@ -166,10 +172,12 @@ prog_name=$(basename "$0")
 #    a)
 #        my_arg=0
 #        ;;
-#    c)
-#        do_clone=true
+#    i)
+#        do_init=true
 #        ;;
-#
+#    s)
+#        do_sync=true
+#        ;;
 #    \?)
 #        # Exit if user has entered an invalid option in the console
 #        echo "${prog_name}: invalid option - '${OPTARG}'" >&2
@@ -188,68 +196,96 @@ prog_name=$(basename "$0")
 
 #===============================================================================
 # Parse arguments from commandline using getopt
+#
+# NOTE! Never use getopt(1). Getopt cannot handle empty arguments strings, or
+#       arguments with embedded whitespace. Please forget that it ever existed.
 #===============================================================================
-do_clone=false
-
-OPTS=`getopt -o hdc -l help,debug,clone -- "$@"`
-if [ $? != 0 ]; then
+SHORTOPTS="hdis"
+LONGOPTS="help,debug,init,sync"
+OPTS=$(getopt --name "$0" \
+              --options ${SHORTOPTS} \
+              --longoptions ${LONGOPTS} \
+              -- "$@")
+# Print help and quit if
+# 1. exit status of getopt returns error or
+# 2. user has not passed any options or
+# 3. ...?
+if [ $? != 0 ] || [ $# = 0 ]; then
     print_usage
     exit 1
 fi
 
-eval set -- "$OPTS"
+eval set -- "${OPTS}"
 while true; do
     case "$1" in
-    -h | --help)
+    -h|--help)
         # Print out help message
         print_usage
         exit 0
-        shift;;
-
-    -d | --debug)
+        ;;
+    -d|--debug)
         # Turn on bash debug mode
         set -x
-        shift;;
-
-    -c | --clone)
-        # Set cloning to true
-        do_clone=true
-        shift;;
+        shift
+        ;;
+    -i|--init)
+        # Set initialization to true
+        do_init=true
+        shift
+        ;;
+    -s|--sync)
+        # Set syncronization to true
+        do_sync=true
+        shift
+        ;;
 
     --)
+        # Shift opts and break the while loop
         shift
-        break;;
+        break
+        ;;
+    *)
+        # For everything else just break the while loop
+        break
+        ;;
     esac
 done
 
 #===============================================================================
 # MAIN
 #===============================================================================
-repo_addr="gerritforge.lmera.ericsson.se:29418"
 
-# CRL Repositories that needs to be synced
-#repos=( crl-coli.git \
-#        crl-errman-pmd.git \
-#        crl-hwlog.git \
-#        crl-itc.git \
-#        crl-itclnh.git \
-#        crl-lhsh_shelld.git \
-#        crl-liblits.git \
-#        crl-libsds.git \
-#        crl-libuio_helper.git \
-#        crl-lmc_parser.git \
-#        crl-xte.git \
-#        )
-repos=( crl-coli )
+# Create an associative array with source address and destination address
+declare -A repos
+repos=( ["git@github.com:proximus/samuel-cv.git"]="file:///home/proximus/src/misc-code/git-mirror/mirror/samuel-cv.git"
+      )
 
-# Check if the users want us to clone
-if [ "$do_clone" = true ] ; then
-    # Clone all repos
-    for repo_name in "${repos[@]}"; do
-        # Clone to bare repos
-        run_cmd "git --bare clone ssh://${USER}@${repo_addr}/${repo_name}"
+# Initialize (clone) all repositories
+if [ "${do_init}" = true ] ; then
+    # Loop through all keys in an associative array
+    for repo in "${!repos[@]}"; do
+        # Make a bare mirrored clone of the repository
+        run_cmd "git clone --mirror ${repo}"
     done
-    exit 1
+fi
+
+# Syncronize all (fetch and push) repositories
+if [ "${do_sync}" = true ] ; then
+    # Loop through all keys in an associative array
+    for repo in "${!repos[@]}"; do
+
+        # Go to the repository
+        pushd "${repo##*/}" > /dev/null
+
+        # Set the push location to your mirror
+        run_cmd "git remote set-url --push origin ${repos[$repo]}"
+
+        # To update the mirror, fetch updates and push
+        run_cmd "git fetch -p origin"
+        run_cmd "git push --mirror"
+
+        popd > /dev/null
+    done
 fi
 
 # Print a nice summary and return with appropriate exit status
