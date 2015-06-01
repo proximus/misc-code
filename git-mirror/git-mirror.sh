@@ -137,25 +137,49 @@ done
 #===============================================================================
 # MAIN
 #===============================================================================
+# A place to locally store all the mirrored repositories
+local_repo_base="/tmp/git-mirror-${USER}"
+
+# Create the mirror base directory if it does not exist
+mkdir -p "${local_repo_base}"
+
 # Initialize (clone) all repositories
-if [ "${do_init}" = true ] ; then
+if [ "${do_init}" = true ]; then
     echo "#==============================================================================="
-    echo "# Initializing all repositories:"
+    echo "# Initializing all repositories to ${local_repo_base}:"
     echo "#==============================================================================="
     # Loop through all keys in an associative array
     for repo in "${!repos[@]}"; do
-        # Make a bare clone of the repository
-        run_cmd "git clone --bare ${repo}"
+
+        # Set the full path and name to the local mirror repository
+        local_repo="${local_repo_base}/${repo##*/}.git"
+
+        # Make a bare clone of remote repository if it does not exist locally
+        if [ ! -d "${local_repo}" ]; then
+            run_cmd "git clone --bare ${repo} ${local_repo}"
+        else
+            echo "Repository ${local_repo} already exists. Skipping initialization..."
+        fi
+
     done
 fi
 
 echo "#==============================================================================="
-echo "# Syncronizing all repositories:"
+echo "# Syncronizing all repositories in ${local_repo_base}:"
 echo "#==============================================================================="
 for repo in "${!repos[@]}"; do
 
-    # Go to the repository
-    pushd "${repo##*/}.git" > /dev/null
+    # Set the full path and name to the local mirror repository
+    local_repo="${local_repo_base}/${repo##*/}.git"
+
+    # If the local repo does not exists, then something went wrong.
+    if [ ! -d "${local_repo}" ]; then
+        echo "Repository ${local_repo} does not exists. Exiting..."
+        exit 1
+    fi
+
+    # Go to the local repository
+    pushd "${local_repo}" > /dev/null
 
     # Set the push location to your mirror
     run_cmd "git remote set-url --push origin ${repos[$repo]}"
