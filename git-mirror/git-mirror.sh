@@ -55,6 +55,7 @@ prog_name=$(basename "$0")
 
 # Initialize variables
 do_init=false
+do_debug=false
 
 #===============================================================================
 # Parse arguments from commandline using bash builtin getopts
@@ -115,6 +116,7 @@ while true; do
     -d|--debug)
         # Turn on bash debug mode
         set -x
+        do_debug=true
         shift
         ;;
     -i|--init)
@@ -158,7 +160,7 @@ if [ "${do_init}" = true ]; then
         if [ ! -d "${local_repo}" ]; then
             run_cmd "git clone --bare ${repo} ${local_repo}"
         else
-            echo "Repository ${local_repo} already exists. Skipping initialization..."
+            echo "Repository ${local_repo} already initializated"
         fi
 
     done
@@ -174,7 +176,7 @@ for repo in "${!repos[@]}"; do
 
     # If the local repo does not exists, then something went wrong.
     if [ ! -d "${local_repo}" ]; then
-        echo "Repository ${local_repo} does not exists. Exiting..."
+        echo "Error: Repository ${local_repo} does not exists"
         exit 1
     fi
 
@@ -203,4 +205,6 @@ for repo in "${!repos[@]}"; do
 done
 
 # Print a nice summary and return with appropriate exit status
-handle_exit
+if [ "${do_debug}" = true ]; then
+    handle_exit
+fi
