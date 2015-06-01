@@ -144,8 +144,8 @@ if [ "${do_init}" = true ] ; then
     echo "#==============================================================================="
     # Loop through all keys in an associative array
     for repo in "${!repos[@]}"; do
-        # Make a bare mirrored clone of the repository
-        run_cmd "git clone --mirror ${repo}"
+        # Make a bare clone of the repository
+        run_cmd "git clone --bare ${repo}"
     done
 fi
 
@@ -155,14 +155,25 @@ echo "#=========================================================================
 for repo in "${!repos[@]}"; do
 
     # Go to the repository
-    pushd "${repo##*/}" > /dev/null
+    pushd "${repo##*/}.git" > /dev/null
 
     # Set the push location to your mirror
     run_cmd "git remote set-url --push origin ${repos[$repo]}"
 
-    # To update the mirror, fetch updates and push
-    run_cmd "git fetch -p origin"
-    run_cmd "git push --mirror"
+    # Fetch from origin
+    # - Copy all branches from the remote refs/heads/ namespace and store them
+    #   to the local refs/remotes/origin/ namespace, unless the
+    #   branch.<name>.fetch option is used to specify a non-default refspec.
+    # - Remove any remote tracking branches which no longer exists on the remote
+    # - Fetch all tags
+    run_cmd "git fetch --prune origin"
+    run_cmd "git fetch --tags origin"
+
+    # Push to origin
+    # - Push all refs under refs/heads
+    # - Push all refs under refs/tags
+    run_cmd "git push --all"
+    run_cmd "git push --tags"
 
     popd > /dev/null
 done
