@@ -65,6 +65,7 @@ do_debug=false
 #    d)
 #        # Turn on bash debug mode
 #        set -x
+#        do_debug=true
 #        ;;
 #    h)
 #        # Print out help message
