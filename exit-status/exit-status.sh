@@ -3,7 +3,7 @@
 #
 #          FILE:  exit-status.sh
 #
-#         USAGE:  include exit-status.sh
+#         USAGE:  . exit-status.sh
 #
 #   DESCRIPTION:  Include this library in any script to execute commands and
 #                 handle exit status in a controlled way.
