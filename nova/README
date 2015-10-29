@@ -1,0 +1,8 @@
+NOVA is an expect script to run an external program with a CLI
+
+The script includes:
+    - default config file
+    - library files
+    ...
+
+Samuel Gabrielsson

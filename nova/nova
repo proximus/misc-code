@@ -1,0 +1,265 @@
+#!/usr/bin/expect
+#===============================================================================
+#
+#          FILE:  nova
+#
+#         USAGE:  ./nova --help
+#
+#   DESCRIPTION:  Helper script to start up an external program simulation.
+#
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@gmail.com)
+#       COMPANY:  ---
+#       VERSION:  1.0
+#       CREATED:  2015-03-10 09:00:00 CET
+#      REVISION:  ---
+#       CHANGES:  ---
+#
+#===============================================================================
+
+#===============================================================================
+# Variables defined as default variables will:
+#   - overwrite no other variables
+#   - be replaced by matching variables in config files
+#   - be replaced by matching variables from command line
+#===============================================================================
+# Set the path to this script
+set prog_dir [file dirname [info script]]
+
+# Source library and configuration files
+source "$prog_dir/lib/functions-generic.tcl"
+source "$prog_dir/lib/functions-logging.tcl"
+source "$prog_dir/lib/nova.tcl"
+
+# Print the ASCII art version of the program name
+print_prog_name
+
+# Default config and lib directory
+set cfg_dir [file join $prog_dir cfg]
+set lib_dir [file join $prog_dir lib]
+
+# Default config and lib files
+#set cfg_file [latest_file $cfg_dir]
+#set lib_file [latest_file $lib_dir]
+set cfg_file $cfg_dir/default.cfg
+set lib_file $lib_dir/default.exp
+
+#===============================================================================
+# Parse arguments from commandline
+#===============================================================================
+set cmdline $argv
+while { [llength $cmdline] } {
+    set arg [lshift cmdline]
+
+    switch -exact -- $arg {
+        --port {
+            set eth_host_base_ [lshift cmdline]
+        }
+        --enable-cli {
+            set enable_cli_ true
+        }
+        --list-config {
+            set list_config_ true
+        }
+        --config {
+            set config_ [lshift cmdline]
+        }
+        --images {
+            set images_dir_ [lshift cmdline]
+        }
+        --kernel {
+            set kernel_ [lshift cmdline]
+        }
+        --device-tree {
+            set device_tree_ [lshift cmdline]
+        }
+        --rootfs {
+            set rootfs_ [lshift cmdline]
+        }
+        --help {
+            usage
+        }
+        --log {
+            log_file -noappend -a [lshift cmdline]
+        }
+        --verbose {
+            log_user 1
+        }
+        --debug {
+            exp_internal 1
+        }
+        default { send_user "Error: Unknown command line flag: $arg\n"; usage }
+    }
+}
+
+#===============================================================================
+# List all available config files in cfg_dir
+#===============================================================================
+if { [info exists list_config_]} {
+    set path [file join $cfg_dir "*.cfg"]
+    send_user "#===============================================================================\n"
+    send_user "# List of configuration files\n"
+    send_user "#===============================================================================\n"
+    check "$cfg_dir"
+
+    # Create a sorted list of config files in path
+    set cfg_files [lsort [glob $path]]
+
+    # Print each config file and exit
+    foreach file $cfg_files {
+        send_user "[file tail $file]\n"
+    }
+    send_user "\n"
+    exit
+}
+
+#===============================================================================
+# Variables defined in config file will:
+#   - overwrite matching default variables
+#   - be replaced by variables defined from command line
+#===============================================================================
+# If config file is defined in command line, then source it. Otherwise, use
+# latest config file but exit if it fails.
+if { [info exists config_] } {
+    set cfg_file $config_
+
+    # Extract the file-name part, if path is relative
+    set cfg_file [file tail $cfg_file ]
+
+    # Make a full path
+    set cfg_file [file join $cfg_dir $cfg_file]
+
+    # Source config file. If it does not exist, then exit with error
+    source_file $cfg_file
+} else {
+    # Source default config file. If it does not exist, then exit with error
+    source_file $cfg_file
+}
+
+# Set booting up to CLI and xterm to true
+if { [info exists enable_cli_] } {
+    set enable_cli true
+}
+
+#===============================================================================
+# Variables defined in command line will:
+#   - overwrite matching default variables
+#   - overwrite matching variables set in any config file
+#   - be replaced by no other variables
+#===============================================================================
+# Set images directory variable with default names. This will overwrite the
+# variables set in config file.
+if { [info exists images_dir_] } {
+    set images_dir          [check [file normalize $images_dir_]]
+    set kernel              [check $images_dir/uImage-xenon.bin]
+    set device_tree         [check $images_dir/xenon-radiosw.dtb]
+    set rootfs              [check $images_dir/rootfs-dev-xenon.cpio.xz.u-boot]
+}
+
+# Set kernel image variable
+if { [info exists kernel_] } {
+    set kernel [check [file normalize $kernel_]]
+}
+
+# Set device tree blob variable
+if { [info exists device_tree_] } {
+    set device_tree [check [file normalize $device_tree_]]
+}
+
+# Set root filesystem image variable
+if { [info exists rootfs_] } {
+    set rootfs [check [file normalize $rootfs_]]
+}
+
+# Set eth host base port number variable
+if { [info exists eth_host_base_] } {
+    set eth_host_base $eth_host_base_
+}
+
+#===============================================================================
+# Do sanity check of defined variables
+#===============================================================================
+
+# Check if Images directory exists
+check $images_dir
+
+# Check if Linux Kernel exists
+check $kernel
+
+# Check if Device Tree Blob exists
+check $device_tree
+
+# Check if Root Filesystem Image exists
+check $rootfs
+
+#===============================================================================
+# MAIN
+#===============================================================================
+# Spawn a shell and expect a prompt after a couple of seconds
+set timeout 5
+spawn $env(SHELL)
+set shell_id $spawn_id
+expect_prompt $shell_prompt
+
+# Start the command line interface (CLI)
+set timeout 5
+send -i $shell_id "$cli\n"
+expect_prompt $cli_prompt
+
+# Source library file to execute the version specific lib file
+source_file $lib_file
+send_user "\n"
+send_user "Type \"help\" for CLI commands or \"CTRL-Q\" anytime to quit.\n"
+send_user "Change between CLI \"F1\" and Linux terminal \"F2\"\n"
+send_user "Entering CLI...\n"
+send "\n"
+
+#===============================================================================
+# Enter expect interactive mode
+#
+#     F1: Change terminal to CLI terminal
+#     F2: Change terminal to Linux terminal
+# Ctrl-C: Expect is killed (the -reset flag restores the terminal modes)
+# Ctrl-Q: Quit the program gracefully
+# Ctrl-Z: Expect is suspended (the -reset flag restores the terminal modes)
+#     ~~: Expect interpreter runs interactively
+#
+#===============================================================================
+set timeout 1
+set F1 \033\OP
+set F2 \033\OQ
+#set CTRL_C \003
+set CTRL_Q \021
+#set CTRL_Z \032
+interact {
+    $F1 {
+        send -i $shell_id "\n"
+        print "Changing to CLI terminal"
+        set proc $shell_id
+    }
+    $F2 {
+        send -i $telnet_id "\n"
+        print "Changing to Linux terminal"
+        set proc $telnet_id
+    }
+#    -reset $CTRL_C {
+#        send_user "\n"
+#        print "Killing CLI"
+#        exec kill -KILL [pid]
+#    }
+    -reset $CTRL_Q {
+        send_user "\n"
+        print "Exiting CLI"
+        exit
+    }
+#    -reset $CTRL_Z {
+#        send_user "\n"
+#        print "Suspending CLI"
+#        exec kill -STOP [pid]
+#    }
+    -i proc
+    ~~
+}

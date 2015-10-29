@@ -1,0 +1,92 @@
+#===============================================================================
+#
+#          FILE:  cli-v0.0.exp
+#
+#         USAGE:  Sourced by main program
+#
+#   DESCRIPTION:  CLI library file to run whatever needed in the CLI
+#
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@gmail.com)
+#       COMPANY:  ---
+#       VERSION:  1.0
+#       CREATED:  2015-09-01 09:00:00 CET
+#      REVISION:  ---
+#       CHANGES:  ---
+#
+#===============================================================================
+# Setup Uart
+cli_set "set foo_uart 1"
+expect_prompt $cli_prompt
+
+# Setup Ethernet
+cli_set "set foo_eth 1"
+expect_prompt $cli_prompt
+
+# Start simulation
+set timeout 15
+send "start_emu\n"
+expect  {
+    "simulation started" { }
+    default { print -fail "Error: Failed to start simulation\n" }
+}
+expect_prompt $cli_prompt
+
+# Load images
+set timeout 30
+loadmem "foo_dest" $kernel $kernel_addr
+expect_prompt $cli_prompt
+
+set timeout 10
+loadmem "foo_dest" $device_tree $dtb_addr
+expect_prompt $cli_prompt
+
+set timeout 60
+loadmem "foo_dest" $rootfs $rootfs_addr
+expect_prompt $cli_prompt
+
+# Get UART port number. Range is 1-655535, used by both server and client conf
+set timeout 5
+set uart_io_port 62100
+send "get db_uart_io.port\n"
+expect {
+    -re "\.db_uart_io\.port = (.*)\r\n\r\n" {
+        set uart_io_port $expect_out(1,string)
+    }
+    default { print -fail }
+}
+expect_prompt $cli_prompt
+
+# Create a new connection depending on if we want an xterm or just plain console
+if { [info exists enable_cli] } {
+    spawn xterm -e telnet localhost $uart_io_port
+} else {
+    spawn telnet localhost $uart_io_port
+}
+set telnet_id $spawn_id
+
+# Switch back to CLI
+set spawn_id $shell_id
+set proc $shell_id
+sleep .5
+
+# Startup the simulation
+set timeout 10
+cli_set "set foo_cpu 0"
+expect_prompt $cli_prompt
+
+# Bootup the kernel
+if { ![info exists enable_cli] } {
+    set spawn_id $telnet_id
+    set proc $telnet_id
+
+    expect_prompt "foo_boot_prompt"
+    send "foo_start\n"
+}
+
+#===============================================================================
+# End
+#===============================================================================
