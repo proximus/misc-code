@@ -1,0 +1,124 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE:  open-disks
+#
+#         USAGE:  ./open-disks -h
+#
+#   DESCRIPTION:  ---
+#
+#       OPTIONS:  ---
+#  REQUIREMENTS:  ---
+#          BUGS:  ---
+#         NOTES:  ---
+#        AUTHOR:  Samuel Gabrielsson (samuel.gabrielsson@gmail.com)
+#       COMPANY:  ---
+#       VERSION:  1.0
+#       CREATED:  2019-02-26 09:00:00 CET
+#      REVISION:  ---
+#       CHANGES:  ---
+#
+#===============================================================================
+# Get the directory of this script
+DIR="${BASH_SOURCE%/*}"; if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+# Program name
+prog_name=$(basename "$0")
+
+# Initialize variables
+do_debug=false
+
+# Source library and configuration files
+. "$DIR/lib/exit-status.sh"
+. "$DIR/cfg/disks.cfg"
+
+#===============================================================================
+# Function will print out help and usage
+#
+# Usage: print_usage
+#===============================================================================
+function print_usage()
+{
+    echo "
+${prog_name} is a program used to mount crypt disks
+
+Usage:
+    ${prog_name} [options]
+
+Options:
+    -h, --help          Show this help text
+    -d, --debug         Show debug information
+
+Report bugs to samuel.gabrielsson@gmail.com" >&2
+}
+
+#===============================================================================
+# Parse arguments from commandline using getopt
+#===============================================================================
+SHORTOPTS="hd"
+LONGOPTS="help,debug"
+OPTS=$(getopt --name "$1" \
+              --options ${SHORTOPTS} \
+              --longoptions ${LONGOPTS} \
+              -- "$@")
+# Print help and quit if exit status of getopt returns an error
+if [ $? != 0 ]; then
+    print_usage
+    exit 1
+fi
+
+eval set -- "${OPTS}"
+while true; do
+    case "$1" in
+    -h|--help)
+        # Print out help message
+        print_usage
+        exit 0
+        ;;
+    -d|--debug)
+        # Turn on bash debug mode
+        set -x
+        do_debug=true
+        shift
+        ;;
+    --)
+        # Shift opts and break the while loop
+        shift
+        break
+        ;;
+    *)
+        # For everything else just break the while loop
+        break
+        ;;
+    esac
+done
+
+#===============================================================================
+# MAIN
+#===============================================================================
+echo "#==============================================================================="
+echo "# Mounting all crypt disks:"
+echo "#==============================================================================="
+for disk in "${!disks[@]}"; do
+    printf "Trying to mount \"${disk}\"\n"
+
+    # Check if the disk exists
+    # More to come ...
+
+    # Create the mount point
+    # More to come ...
+
+    # Create the mapped device in /dev/mapper/<mapped-device>
+    run_cmd "sudo cryptsetup luksOpen /dev/disk/by-id/${disk} ${disk}"
+
+    # Enter the password
+    # More to come ...
+
+    # Mount the device
+    run_cmd "sudo mount /dev/mapper/${disk} ${disks[$disk]}"
+done
+
+# Print a nice summary and return with appropriate exit status
+if [ "${do_debug}" = true ]; then
+    handle_exit
+fi

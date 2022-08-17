@@ -1,0 +1,2 @@
+open-disks is a program used to mount crypt disks based on the configuration
+file in cfg/disks.cfg
